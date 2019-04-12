@@ -1,0 +1,59 @@
+#################################################################################
+#Author: Maruthi N. H., email: maruthinh@gmail.com					            # 
+#input parameters for solving 2D Euler/NS equations on a structured grid        #
+#################################################################################
+#Test case name (this name will be used to write output files)
+SWBLI_TV_ND1
+#Equations to be solved (Euler=0, for NSE=1)
+1
+#Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
+0	
+#Nature of the flow (steady=0, unsteady=1)
+0
+#Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
+0
+#Insvicid descretization method (see end of the file for description)
+25
+#Spatial accuracy of inviscid scheme (first order=0, second order=1)
+1
+#viscous descritization method (Green Gauss=0, Least square=1, only GG available)
+0
+#cfl number
+0.95
+#scaling factor (for appropreate Re)
+1
+#restart solution (no=0, yes=1)
+0
+#mesh file
+SWBLIGrid10565_2.dat
+#grid size (Nx*Ny)
+105 65
+#Mesh topology file containing boundary informations
+GridTopSWBLI_NS.dat
+#restart file 
+SWBLI_ZB_IsoCont105_65Iter200000.dat
+#Maximum number of iterations
+300000
+######################Flow parameters/Dimensional################################
+#Reynolds number
+98645
+#Mach number
+2.2
+#Reference length (Lref)
+0.8
+#Angle of attack (in degrees)
+0
+#Inlet pressure (pa)
+985.01
+#Inlet temperature (K)
+111.56
+######################Flow parameters/Non-Dimensional############################
+#ref pressure (pa)
+100000
+#ref temperature (K)
+300
+#ref density (kg/m^3)
+1.12
+#ref velocity
+1
+###################################End of Input File#############################

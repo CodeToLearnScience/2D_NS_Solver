@@ -1,0 +1,59 @@
+#################################################################################
+#Author: Maruthi N. H., email: maruthinh@gmail.com					            # 
+#input parameters for solving 2D Euler/NS equations on a structured grid        #
+#################################################################################
+#Test case name (this name will be used to write output files)
+Ramp_ECC
+#Equations to be solved (Euler=0, for NSE=1)
+0
+#Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
+1	
+#Nature of the flow (steady=0, unsteady=1)
+0
+#Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
+0
+#Insvicid descretization method (see end of the file for description)
+29
+#Spatial accuracy of inviscid scheme (first order=0, second order=1)
+1
+#viscous descritization method (Green Gauss=0, Least square=1, only GG available)
+0
+#cfl number
+0.5
+#scaling factor (for appropreate Re)
+1.0
+#restart solution (no=0, yes=1)
+0
+#mesh file
+RampGrid12040.dat
+#grid size (Nx*Ny)
+120 40
+#Mesh topology file containing boundary informations
+GridTopRampEuler12040.dat
+#restart file 
+Something.dat
+#Maximum number of iterations
+30000
+######################Flow parameters/Dimensional################################
+#Reynolds number
+257354.0
+#Mach number
+2.0
+#Reference length (Lref)
+0.0381
+#Angle of attack (in degrees)
+0
+#Inlet pressure (pa)
+101325.0
+#Inlet temperature (K)
+298.0
+######################Flow parameters/Non-Dimensional############################
+#ref pressure (pa)
+100000
+#ref temperature (K)
+300
+#ref density (kg/m^3)
+1.12
+#ref velocity
+1
+###################################End of Input File#############################

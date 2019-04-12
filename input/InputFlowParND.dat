@@ -1,0 +1,22 @@
+######################################################
+#Author: Maruthi N. H., email: maruthinh@gmail.com   # 
+#ND input flow parameters for solving 2D Euler/NSE   #
+######################################################
+#Reynolds number
+100000
+#Mach number
+2.15
+#Reference length (Lref)
+0.8
+#Angle of attack (in degrees)
+0
+#Ratio of specific heat (Gamma)
+1.4
+#ref pressure (pa)
+100000
+#ref temperature (K)
+300
+#ref density (kg/m^3)
+1.12
+#ref velocity
+1

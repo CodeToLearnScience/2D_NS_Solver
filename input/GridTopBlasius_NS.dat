@@ -1,0 +1,21 @@
+#######################################################
+#  Author: Maruthi N. H., email: maruthinh@gmail.com  # 
+#  Boundary information for applying B.Cs             #
+#######################################################
+#input method for b.c: (if prescribed input (default=0), Bc flag, boun index, boun cell, str_bseg, end_bseg)
+#Number of boundary segments
+5
+#number of boundary segments with prescribed input
+0
+#########################Boundary condition information starts####################
+0	70	1	1	2	9
+0	60	4	1	2	66
+0	60	2	107	2	66
+0	60	3	67	2	106
+0	40	1	1	10	106
+#########################End of Boundary condition information###################
+
+
+
+
+

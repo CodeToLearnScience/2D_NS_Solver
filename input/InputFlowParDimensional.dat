@@ -1,0 +1,20 @@
+######################################################
+#Author: Maruthi N. H., email: maruthinh@gmail.com   # 
+#input flow parameters for solving 2D Euler/NSE      #
+######################################################
+#Reynolds number
+100000
+#Mach number
+2.15
+#Reference length (Lref)
+0.8
+#Angle of attack (in degrees)
+0
+#Ratio of specific heat (Gamma)
+1.4
+#Specific heat at const pressure (Cp)
+1005.0
+#Inlet pressure (pa)
+100000
+#Inlet temperature (K)
+300
