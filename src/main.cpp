@@ -1,13 +1,13 @@
 #include "../inc/global_declarations.h"
 
-int main() {
+int main(int argc, char** argv) {
 
     std::cout << std::setprecision(8);
     std::cout << std::ios::dec;
     std::cout << std::scientific;
-
-    //ReadSolverInput("../input/InputHypersonicFlowNS.dat");
-    ReadSolverInput("../input/InputHypersonicFlowEuler.dat");
+    
+    ReadSolverInput(argv[1]);
+    //ReadSolverInput("../input/InputHypersonicFlowEuler.dat");
     //ReadSolverInput("../input/InputRampEuler.dat");
     //ReadSolverInput("../input/InputSWBLI_NS.dat");
     //ReadSolverInput("../input/InputSWBLI_NS_ND1.dat");

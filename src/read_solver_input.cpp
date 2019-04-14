@@ -10,7 +10,9 @@ void ReadSolverInput(const std::string& SolverInputFile){
     std::string TitleLine, StartDelim, EndDelim, junk;
 
     std::ifstream infile;
-    infile.open("../input/"+SolverInputFile);
+    infile.open(SolverInputFile);
+
+    std::cout<<"string solverInput="<<SolverInputFile<<std::endl;
 
     if (infile.fail()) {
         std::cerr << "Solver Input File couldn't be opened to read" << std::endl;
