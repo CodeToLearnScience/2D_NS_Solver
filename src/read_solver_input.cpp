@@ -3,7 +3,7 @@
 //
 
 
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void ReadSolverInput(const std::string& SolverInputFile){
 

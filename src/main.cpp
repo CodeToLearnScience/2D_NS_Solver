@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 int main() {
 
@@ -38,7 +38,7 @@ int main() {
     }
 
     if (restart==0){
-        Res.open("../output_kfds/Residue_"+test_case+std::to_string(Nx)+"_"+std::to_string(Ny)+".dat");
+        Res.open("../output/Residue_"+test_case+std::to_string(Nx)+"_"+std::to_string(Ny)+".dat");
         Res.flags(std::ios::dec | std::ios::scientific);
         Res.precision(10);
 
@@ -49,7 +49,7 @@ int main() {
     }
     else if (restart==1){
         ReadSolnFileToRestart(RestartFile, Nx, id1, id2, Ny, jd1, jd2, dv, cv);
-        Res.open("../output_kfds/Residue_Iter_"+test_case+std::to_string(restart_iter)+"_"+std::to_string(Nx)+"_"
+        Res.open("../output/Residue_Iter_"+test_case+std::to_string(restart_iter)+"_"+std::to_string(Nx)+"_"
                  +std::to_string(Ny)+".dat", std::ios_base::app);
         Res.flags(std::ios::dec | std::ios::scientific);
         Res.precision(10);

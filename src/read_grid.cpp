@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1, int jd2, double **&x, double **&y) {
     int k;

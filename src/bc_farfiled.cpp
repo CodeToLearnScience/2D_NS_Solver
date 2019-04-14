@@ -1,8 +1,8 @@
 //
 // Created by maruthinh on 17/2/18.
 //
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 void BC_FarField(int bind, int bnode, int sbind, int ebind, double ***&si, double ***&sj, double ***&cv,
                 double ***&dv, double rhoinf, double uinf, double vinf, double pinf) {
 

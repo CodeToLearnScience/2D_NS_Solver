@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 
 void Avg_Conv_Flux2(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv, double ***&dv, double **&area,

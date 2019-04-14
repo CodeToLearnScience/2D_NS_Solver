@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Write_Solution(int id1, int jd1, int iter, double t, double **&x, double **&y, double ***&cv) {
 
@@ -7,7 +7,7 @@ void Write_Solution(int id1, int jd1, int iter, double t, double **&x, double **
             syy, dsy, nxy, nyy;
 
     std::string oup;
-    oup = "../output_kfds/";
+    oup = "../output/";
     std::ofstream other(oup+test_case+"_IsoCont"+std::to_string(Nx)+"_"+std::to_string(Ny)+"Iter"+std::to_string(iter)+
                         ".dat");
     other.flags(std::ios::dec | std::ios::scientific);
@@ -78,7 +78,7 @@ void Write_Solution(int id1, int jd1, int iter, double t, double **&x, double **
 void WriteRestartFile(int ib, int jb, int iter, double t, double ***&dv) {
 
     std::string oup;
-    oup = "../output_kfds/";
+    oup = "../output/";
     //std::ofstream other(oup+"RestartFile"+"Iter"+std::to_string(iter)+"_"+"t"+std::to_string(t)+".dat");
     std::ofstream other(oup+test_case+"RestartFile"+std::to_string(Nx)+"_"+std::to_string(Ny)+".dat");
     other.flags(std::ios::dec | std::ios::scientific);
@@ -111,7 +111,7 @@ void Write_Surf_Solution(int bind, int sur_ind, int beg_seg, int end_seg, int id
     gradavg = new double[4];
 
     std::string oup;
-    oup = "../output_kfds/";
+    oup = "../output/";
     std::ofstream sur(oup + test_case+"_Sur_"+std::to_string(Nx)+"_"+std::to_string(Ny)+"Iter"+std::to_string(iter)
                       +".dat");
     sur.flags(std::ios::dec | std::ios::scientific);
@@ -354,7 +354,7 @@ void Interior_Solution(int bind, int indx, int beg_seg, int end_seg, int id1, in
     gradavg = new double[4];
 
     std::string oup;
-    oup = "../output_kfds/";
+    oup = "../output/";
     std::ofstream sur(oup + test_case+"_Inter_"+std::to_string(Nx)+"_"+std::to_string(Ny)+"Iter"+std::to_string(iter)
                       +".dat");
     sur.flags(std::ios::dec | std::ios::scientific);

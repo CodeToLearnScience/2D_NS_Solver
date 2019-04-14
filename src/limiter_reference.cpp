@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Limiter_Reference(double *&limref) {
 

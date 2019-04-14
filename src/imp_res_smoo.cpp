@@ -2,8 +2,8 @@
 // Created by maruthinh on 24/2/18.
 //
 
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Imp_Res_Smoo(double **&dirs, double ***&epsij, double ***&rhs){
 

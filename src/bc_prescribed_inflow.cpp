@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Bc_Prescribed_Inflow(int bind, int bnode, int sbind, int ebind, double rhoinf, double uinf, double vinf,
                           double pinf, double ***&cv, double ***&dv) {

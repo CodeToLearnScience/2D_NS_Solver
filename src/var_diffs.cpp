@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 
 void Prim_Variables_Differences(int ib, int id2, int jb, int jd2, double ***cv, double ***dv, double ***&dui,

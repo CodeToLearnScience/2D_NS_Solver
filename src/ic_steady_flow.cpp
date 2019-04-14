@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 
 void Ic_Steady_Flow(int id2, int jd2, double rho_inf, double u_inf, double v_inf, double p_inf, double ***&cv, double ***&dv) {

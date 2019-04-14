@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void Boundary_Conditions(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv, double ***&dv, double **&x,
                          double **&y, double ***&si, double ***&sj, int *&pres_input_flag, int *&bc_flag, int *&bound_ind,

@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Solver(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv, int ndepv, double **&x, double **&y,
     double ***&cv, double ***&dv, double ***&dui, double ***&duj, double **&area, double ***&si, double ***&sj,

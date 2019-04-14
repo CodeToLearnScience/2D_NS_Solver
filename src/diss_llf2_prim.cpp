@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 template<typename T>
 T MaxEigVal(T ur, T ul, T vr, T vl, T ar, T al, T nx, T ny);

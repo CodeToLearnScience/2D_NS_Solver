@@ -2,8 +2,8 @@
 // Created by Maruthi NH on 13-07-2018.
 //
 
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 void InitFlowNonDimensional(int id2, int jd2, double Re_inf, double Machinf, double Lref,  double alpha, double ***&cv,
                             double ***&dv) {
 

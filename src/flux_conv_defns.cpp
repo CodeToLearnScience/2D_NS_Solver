@@ -2,7 +2,7 @@
 // Created by Maruthi NH on 14-06-2018.
 //
 
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double ***&cv, double ***&dv,
                    double ***&iAvgFlux, double ***&jAvgFlux, double ***&iFluxDiff, double ***&jFluxDiff,

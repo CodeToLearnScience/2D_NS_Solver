@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void Grid_Computations(int ib, int jb, int id1, int id2, int jd1, int jd2, double **&x, double **&y, double **&area,
                        double ***&si, double ***&sj) {

@@ -1,8 +1,8 @@
 //
 // Created by Maruthi on 14-07-2018.
 //
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&bc_flag, int *&bound_ind,
                         int *&bound_cell, int *&strt_bound_seg, int *&end_bound_seg, double **&pres_rhouvp) {
     int k, tot_seg_loop;

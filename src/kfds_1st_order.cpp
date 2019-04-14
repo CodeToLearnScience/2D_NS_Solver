@@ -2,8 +2,8 @@
 // Created by Maruthi NH on 18-06-2018.
 //
 
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 template <typename T>
 T Movers(T deltaF, T deltaU, T L_max, T L_min);

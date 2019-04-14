@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void
 Gradient_FaceI(int nconv, int ndvar, double ***&cv, double ***&dv,

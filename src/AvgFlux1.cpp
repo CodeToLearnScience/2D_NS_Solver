@@ -2,8 +2,8 @@
 // Created by maruthinh on 16/3/18.
 //
 
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Avg_Flux1(int ib, int id1, int jb, int jd1, double ***&cv, double ***&dv, double ***&si, double ***&sj, double ***&diss, double ***&rhs) {
 

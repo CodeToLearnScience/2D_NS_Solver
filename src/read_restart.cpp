@@ -2,8 +2,8 @@
 // Created by maruthinh on 15/5/18.
 //
 
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void ReadSolnFileToRestart(const std::string& RestartFile, int Nx, int id1, int id2, int Ny, int jd1, int jd2,
                            double ***&dv, double ***&cv) {
@@ -12,7 +12,7 @@ void ReadSolnFileToRestart(const std::string& RestartFile, int Nx, int id1, int 
 
     std::ifstream infile;
 
-    infile.open("../output_kfds/"+RestartFile);
+    infile.open("../output/"+RestartFile);
 
     if (infile.fail()) {
         std::cerr << "File couldn't be opened to read Restart file" << std::endl;

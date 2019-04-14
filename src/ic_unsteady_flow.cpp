@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void
 Ic_Unsteady_Flow(int id1, int id2, int jd1, int jd2, int index, int loc, double rhol, double rhor, double ul, double ur,

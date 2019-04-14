@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Forces(int bind, int bnode, int sbind, int ebind, int ndvar, double **&x, double **&y, double ***&dv,
             double ***&si, double ***&sj) {

@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Flux_EulerWall(int bind, int bnode, int sbind, int ebind, double ***&cv, double ***&dv, double ***&si, double ***&sj,
                double ***&rhs) {

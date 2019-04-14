@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void Residue_Cal(int iter, double dt, double t, double ***&cv, double ***&cvold, double ***&dv, double ***&si, double ***&sj) {
 

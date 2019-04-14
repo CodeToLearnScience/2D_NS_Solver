@@ -1,5 +1,5 @@
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 
 void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv, int ndepv, double ***&cv,
                      double ***&dv, double **&area, double ***&si, double ***&sj, double **&tstep, double **&sri,

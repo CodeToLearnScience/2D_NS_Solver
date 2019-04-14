@@ -1,7 +1,7 @@
 //
 // Created by DNS_Lab on 26-03-2018.
 //
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void BC_InFlow(int bind, int bnode, int sbind, int ebind, double ***&cv,
                 double ***&dv) {

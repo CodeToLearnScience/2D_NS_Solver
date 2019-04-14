@@ -2,8 +2,8 @@
 // Created by Maruthi on 16-02-2018.
 //
 
-#include "global_declarations.h"
-#include "basic_functions.h"
+#include "../inc/global_declarations.h"
+#include "../inc/basic_functions.h"
 void
 Flux_Viscous(int nconv, int ndvar, double ***&cv, double ***&dv,
                double **&u, double **&v, double **&area, double ***&si, double ***&sj, double ***&gradfi, double ***&gradfj) {

@@ -1,4 +1,4 @@
-#include "global_declarations.h"
+#include "../inc/global_declarations.h"
 
 void Dependent_Variables(int id2, int jd2, double ***&cv, double ***&dv) {
 
