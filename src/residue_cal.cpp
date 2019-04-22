@@ -29,17 +29,29 @@ void Residue_Cal(int iter, double dt, double t, double ***&cv, double ***&cvold,
         Resn1 = 1.0;
     }
     else{
-        Resn1 = sqrt(Resn1)/dcv11;
+        //Resn1 = sqrt(Resn1)/dcv11;
+        Resn1 = sqrt(Resn1);
     }
 
-    Forces(4, 1, 2, jb, ndvar, x, y, dv, si, sj);
+    Forces(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, x, y, dv, si, sj);
 
     //std::cout<<iter<<"\t"<<Resn1<<"\t"<<dcv1max<<"\t"<<iresmax<<"\t"<<jresmax<<"\t"<<cl<<"\t"<<cd<<"\t"<<cm<<std::endl;
     //Res<<iter<<"\t"<<Resn1<<"\t"<<dcv1max<<"\t"<<iresmax<<"\t"<<jresmax<<"\t"<<cl<<"\t"<<cd<<"\t"<<cm<<std::endl;
     //Res.close();
-    if(iter%500==0) {
-        std::cout << iter << "\t" << dt << "\t" << t << "\t" << dcv1max << "\t" << iresmax << "\t" << jresmax << "\t"
-                  << cl << "\t" << cd << "\t" << cm << std::endl;
+    if(iter%disp_freq==0) {
+        std::cout << "iter="<<iter << "\t" << "time_step="<<dt << "\t" <<"tot_time="<< t << "\t" << "dens_res="<<Resn1
+                  << "\t" << "iresmax="<<iresmax << "\t" <<"jresmax="<< jresmax << "\t" <<"cl="<< cl << "\t" <<"cd="<<cd
+                  << "\t" <<"cm="<< cm << std::endl;
     }
-    Res<<iter<<"\t"<<dt<<"\t"<<t<<"\t"<<dcv1max<<"\t"<<iresmax<<"\t"<<jresmax<<"\t"<<cl<<"\t"<<cd<<"\t"<<cm<<std::endl;
+    if(iter==1){
+        Res << "TITLE = Residue and forces"<< std::endl
+            << "VARIABLES = Iter, dt, tot_t, Res_rho, iresmax, jresmax, Cl, Cd, Cm" << std::endl;
+    }
+
+    Res<<iter<<"\t"<<dt<<"\t"<<t<<"\t"<<log10(Resn1)<<"\t"<<iresmax<<"\t"<<jresmax<<"\t"<<cl<<"\t"<<cd<<"\t"<<cm<<std::endl;
+
+    if(Resn1<1e-10){
+        std::cout<<"Results are converged to 1e-10"<<std::endl;
+        exit(0);
+    }
 }

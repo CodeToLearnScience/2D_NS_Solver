@@ -112,6 +112,19 @@ void ReadSolverInput(const std::string& SolverInputFile){
     infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     if(restart==0) std::cout<<"Starting solution afresh"<<std::endl;
     else std::cout<<"Restart File is="<<RestartFile<<std::endl;
+    //parameter to read and control display frequency of results
+    getline(infile, TitleLine);
+    std::cout<<TitleLine<<std::endl;
+    infile>>disp_freq;
+    infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout<<"display frequency is=="<<disp_freq<<std::endl;
+    //parameter to read and control output frequency of results
+    getline(infile, TitleLine);
+    std::cout<<TitleLine<<std::endl;
+    infile>>outp_freq;
+    infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout<<"output frequency is=="<<outp_freq<<std::endl;
+    //parameter to control maximum iterations results
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
     infile>>MaxIter;

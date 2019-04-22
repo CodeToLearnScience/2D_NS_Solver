@@ -7,12 +7,7 @@ int main(int argc, char** argv) {
     std::cout << std::scientific;
     
     ReadSolverInput(argv[1]);
-    //ReadSolverInput("../input/InputHypersonicFlowEuler.dat");
-    //ReadSolverInput("../input/InputRampEuler.dat");
-    //ReadSolverInput("../input/InputSWBLI_NS.dat");
-    //ReadSolverInput("../input/InputSWBLI_NS_ND1.dat");
-    //ReadSolverInput("../input/InputSWBLI_NS_Dimen.dat");
-    //ReadSolverInput("../input/InputBlasius.dat");
+
     ib = Nx + 1, jb = Ny + 1, id1 = Nx + 2, id2 = Nx + 3, jd1 = Ny + 2, jd2 = Ny + 3, imax = Nx + 4, jmax = Ny + 4;
 
     ReadGridTopology(MeshTopFile, pres_input_flag, bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg,
@@ -83,11 +78,12 @@ int main(int argc, char** argv) {
             Solver(ib, id1, id2, jb, jd1, jd2, nconv, ndvar, x, y, cv, dv, dui, duj, area, si, sj, tstep, sri,  srj,
                    gradfi,  gradfj, cvold, diss, rhs, epsij);
             Residue_Cal(iter, tstep[2][2], time, cv, cvold, dv, si, sj);
-            if(iter%1000==0){
+            if(iter%outp_freq==0){
                 Write_Solution(id1, jd1, iter, time, x, y, cv);
                 //Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj); //fpr cylinder
-                Write_Surf_Solution(1, 1, 10, id1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
-                Interior_Solution(1, 100, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
+                Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
+                                    gradfi, gradfj);
+                //Interior_Solution(1, 100, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
                 //WriteRestartFile(ib, jb, iter, time, dv);
             }
         }
@@ -96,7 +92,8 @@ int main(int argc, char** argv) {
         int iter = 0;
         double t = 0, tmax = 1.958e-3;
         Write_Solution(id1, jd1, iter, time, x, y, cv);
-        Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
+        Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
+                            gradfi, gradfj);
         Interior_Solution(1, 69, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
         while (t < tmax) {
 
@@ -107,10 +104,11 @@ int main(int argc, char** argv) {
 
             Solver(ib, id1, id2, jb, jd1, jd2, nconv, ndvar, x, y, cv, dv, dui, duj, area, si, sj, tstep, sri,  srj,
                    gradfi,  gradfj, cvold, diss, rhs, epsij);
-            if(iter%1000==0){
+            if(iter%outp_freq==0){
                 Write_Solution(id1, jd1, iter, time, x, y, cv);
-                Write_Surf_Solution(1, 1, 10, 10, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
-                Interior_Solution(1, 69, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
+                Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
+                                    gradfi, gradfj);
+                //Interior_Solution(1, 69, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
                 WriteRestartFile(ib, jb, iter, time, dv);
             }
         }
@@ -121,8 +119,9 @@ int main(int argc, char** argv) {
 
     Write_Solution(id1, jd1, iter, time, x, y, cv);
     //Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
-    Write_Surf_Solution(1, 1, 2, id1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
-    Interior_Solution(1, 56, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
+    Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
+            gradfi, gradfj);
+    //Interior_Solution(1, 56, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
     delete gradfi, gradfj;
     return 0;
 }

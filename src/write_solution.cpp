@@ -101,13 +101,13 @@ void WriteRestartFile(int ib, int jb, int iter, double t, double ***&dv) {
     other.close();
 }
 
-void Write_Surf_Solution(int bind, int sur_ind, int beg_seg, int end_seg, int id1, int jd1, int iter, double t,
+void Write_Surf_Solution(int *&bc_flag, int *&bound_ind, int *&bound_cell, int *&strt_bound_seg, int *&end_bound_seg, int id1, int jd1, int iter, double t,
                          double **&x, double **&y, double ***&cv, double ***&dv, double ***&gradfi, double ***&gradfj) {
 
-    double rho, u, v, p, a, Mach, T, Cf, mav, kav, *gradavg, sx, sy, ds, nx, ny, gradnx, gradny, gradnn, dvdnx,
-            dvdny, sgn, dvdna;
-    int ip1, jp1, id, jd;
-    int counter;
+    double rho=0, u=0, v=0, p=0, a=0, Mach=0, T=0, Cf=0, mav=0, kav=0, *gradavg, sx=0, sy=0, ds=0, nx=0, ny=0, gradnx=0,
+            gradny=0, gradnn=0, dvdnx=0,dvdny=0, sgn=0, dvdna=0;
+    int ip1, jp1, id=0, jd=0, beg_seg=0, end_seg=0, sur_ind=0;
+    int counter=0;
     gradavg = new double[4];
 
     std::string oup;
@@ -125,223 +125,243 @@ void Write_Surf_Solution(int bind, int sur_ind, int beg_seg, int end_seg, int id
     sur << "TITLE = "<<"\"Iter="<<iter<<", "<<"time="<<ToStringWithPrecision(t, 16)<<"\""<< std::endl
         << "VARIABLES = counter, xc, yc, rho, u, v, p, T, a, Mach, visc, k, Cf" << std::endl;
 
-    if(bind==1){
-        sur << "Zone"<<" "<<"T="<<"\""<<ToStringWithPrecision(t, 16)<<"\""<<","<<" "<<"I=" << ib <<","<<"\t"
-            << " F = POINT" << std::endl;
-        counter=0;
-        for (int i = beg_seg; i <= end_seg; i++) {
-            int j = sur_ind;
-            counter++;
+    for(int bc=0; bc<no_boun_seg; bc++) {
+        if(bc_flag[bc]==30 or bc_flag[bc]==40 or bc_flag[bc]==50){
+            bind = bound_ind[bc]; beg_seg = strt_bound_seg[bc]; end_seg = end_bound_seg[bc]; sur_ind=bound_cell[bc];
 
-            if(i==id1) id=ib;
-            else id = i;
-            /*rho = 0.25 * (dv[0][i][j] + dv[0][i + 1][j] + dv[0][i + 1][j + 1] + dv[0][i][j + 1]);
-            u   = 0.25 * (dv[1][i][j] + dv[1][i + 1][j] + dv[1][i + 1][j + 1] + dv[1][i][j + 1]);
-            v   = 0.25 * (dv[2][i][j] + dv[2][i + 1][j] + dv[2][i + 1][j + 1] + dv[2][i][j + 1]);
-            p   = 0.25 * (dv[3][i][j] + dv[3][i + 1][j] + dv[3][i + 1][j + 1] + dv[3][i][j + 1]);
-            T   = 0.25 * (dv[4][i][j] + dv[4][i + 1][j] + dv[4][i + 1][j + 1] + dv[4][i][j + 1]);
-            a   = 0.25 * (dv[5][i][j] + dv[5][i + 1][j] + dv[5][i + 1][j + 1] + dv[5][i][j + 1]);
-            mav = 0.25 * (dv[6][i][j] + dv[6][i + 1][j] + dv[6][i + 1][j + 1] + dv[6][i][j + 1]);
-            kav = 0.25 * (dv[7][i][j] + dv[7][i + 1][j] + dv[7][i + 1][j + 1] + dv[7][i][j + 1]);*/
+            //std::cout<<"bind="<<"\t"<<bind<<"beg_seg="<<beg_seg<<"\t"<<"end_seg="<<end_seg<<"sur_ind="<<sur_ind<<std::endl;
 
-            rho = 0.25 * (dv[0][id][j] + dv[0][id][j + 1] + dv[0][id - 1][j + 1] + dv[0][id - 1][j]);
-            u   = 0.25 * (dv[1][id][j] + dv[1][id][j + 1] + dv[1][id - 1][j + 1] + dv[1][id - 1][j]);
-            v   = 0.25 * (dv[2][id][j] + dv[2][id][j + 1] + dv[2][id - 1][j + 1] + dv[2][id - 1][j]);
-            p   = 0.25 * (dv[3][id][j] + dv[3][id][j + 1] + dv[3][id - 1][j + 1] + dv[3][id - 1][j]);
-            T   = 0.25 * (dv[4][id][j] + dv[4][id][j + 1] + dv[4][id - 1][j + 1] + dv[4][id - 1][j]);
-            a   = 0.25 * (dv[5][id][j] + dv[5][id][j + 1] + dv[5][id - 1][j + 1] + dv[5][id - 1][j]);
-            mav = 0.25 * (dv[6][id][j] + dv[6][id][j + 1] + dv[6][id - 1][j + 1] + dv[6][id - 1][j]);
-            kav = 0.25 * (dv[7][id][j] + dv[7][id][j + 1] + dv[7][id - 1][j + 1] + dv[7][id - 1][j]);
 
-            /*//to compute Cf
-            if(i==ib) ip1=ib;
-            else ip1 = i + 1;
+            if(bind==1){
 
-            gradavg[0] = 0.5 * (gradfj[0][ip1][j] + gradfj[0][ip1][j + 1]);
-            gradavg[1] = 0.5 * (gradfj[1][ip1][j] + gradfj[1][ip1][j + 1]);
-            gradavg[2] = 0.5 * (gradfj[2][ip1][j] + gradfj[2][ip1][j + 1]);
-            gradavg[3] = 0.5 * (gradfj[3][ip1][j] + gradfj[3][ip1][j + 1]);*/
+                sur << "Zone"<<" "<<"T="<<"\""<<ToStringWithPrecision(t, 16)<<"\""<<","<<" "<<"I=" << (end_seg-beg_seg) <<","<<"\t"
+                    << " F = POINT" << std::endl;
+                counter=0;
+                for (int i = beg_seg; i <= end_seg; i++) {
+                    int j = sur_ind;
+                    counter++;
 
-            //to compute Cf
-            gradavg[0] = 0.5 * (gradfj[0][id][j] + gradfj[0][id][j + 1]);
-            gradavg[1] = 0.5 * (gradfj[1][id][j] + gradfj[1][id][j + 1]);
-            gradavg[2] = 0.5 * (gradfj[2][id][j] + gradfj[2][id][j + 1]);
-            gradavg[3] = 0.5 * (gradfj[3][id][j] + gradfj[3][id][j + 1]);
+                    if(i==id1) id=ib;
+                    else id = i;
+                    /*rho = 0.25 * (dv[0][i][j] + dv[0][i + 1][j] + dv[0][i + 1][j + 1] + dv[0][i][j + 1]);
+                    u   = 0.25 * (dv[1][i][j] + dv[1][i + 1][j] + dv[1][i + 1][j + 1] + dv[1][i][j + 1]);
+                    v   = 0.25 * (dv[2][i][j] + dv[2][i + 1][j] + dv[2][i + 1][j + 1] + dv[2][i][j + 1]);
+                    p   = 0.25 * (dv[3][i][j] + dv[3][i + 1][j] + dv[3][i + 1][j + 1] + dv[3][i][j + 1]);
+                    T   = 0.25 * (dv[4][i][j] + dv[4][i + 1][j] + dv[4][i + 1][j + 1] + dv[4][i][j + 1]);
+                    a   = 0.25 * (dv[5][i][j] + dv[5][i + 1][j] + dv[5][i + 1][j + 1] + dv[5][i][j + 1]);
+                    mav = 0.25 * (dv[6][i][j] + dv[6][i + 1][j] + dv[6][i + 1][j + 1] + dv[6][i][j + 1]);
+                    kav = 0.25 * (dv[7][i][j] + dv[7][i + 1][j] + dv[7][i + 1][j + 1] + dv[7][i][j + 1]);*/
 
-            /*sx = -0.5 * (sj[0][ip1][j] + sj[0][ip1][j + 1]);
-            sy = -0.5 * (sj[1][ip1][j] + sj[1][ip1][j + 1]);
-            ds = sqrt(sx * sx + sy * sy);
-            nx = sx / ds;
-            ny = sy / ds;
-            
-            gradnx = gradavg[0] * nx + gradavg[1] * ny;
-            gradny = gradavg[2] * nx + gradavg[3] * ny;
-            gradnn = gradnx * nx + gradny * ny;
-            dvdnx  = gradnx - gradnn * nx;
-            dvdny  = gradny - gradnn * ny;
-            sgn    = Sign(gradnx);
-            dvdna  = sqrt(dvdnx * dvdnx + dvdny * dvdny);
-            Cf     = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);*/
+                    rho = 0.25 * (dv[0][id][j] + dv[0][id][j + 1] + dv[0][id - 1][j + 1] + dv[0][id - 1][j]);
+                    u   = 0.25 * (dv[1][id][j] + dv[1][id][j + 1] + dv[1][id - 1][j + 1] + dv[1][id - 1][j]);
+                    v   = 0.25 * (dv[2][id][j] + dv[2][id][j + 1] + dv[2][id - 1][j + 1] + dv[2][id - 1][j]);
+                    p   = 0.25 * (dv[3][id][j] + dv[3][id][j + 1] + dv[3][id - 1][j + 1] + dv[3][id - 1][j]);
+                    T   = 0.25 * (dv[4][id][j] + dv[4][id][j + 1] + dv[4][id - 1][j + 1] + dv[4][id - 1][j]);
+                    a   = 0.25 * (dv[5][id][j] + dv[5][id][j + 1] + dv[5][id - 1][j + 1] + dv[5][id - 1][j]);
+                    mav = 0.25 * (dv[6][id][j] + dv[6][id][j + 1] + dv[6][id - 1][j + 1] + dv[6][id - 1][j]);
+                    kav = 0.25 * (dv[7][id][j] + dv[7][id][j + 1] + dv[7][id - 1][j + 1] + dv[7][id - 1][j]);
 
-            sx = -0.5 * (sj[0][id][j] + sj[0][id][j + 1]);
-            sy = -0.5 * (sj[1][id][j] + sj[1][id][j + 1]);
-            ds = sqrt(sx * sx + sy * sy);
-            nx = sx / ds;
-            ny = sy / ds;
+                    /*//to compute Cf
+                    if(i==ib) ip1=ib;
+                    else ip1 = i + 1;
 
-            gradnx = gradavg[0] * nx + gradavg[1] * ny;
-            gradny = gradavg[2] * nx + gradavg[3] * ny;
-            gradnn = gradnx * nx + gradny * ny;
-            dvdnx  = gradnx - gradnn * nx;
-            dvdny  = gradny - gradnn * ny;
-            sgn    = Sign(gradnx);
-            dvdna  = sqrt(dvdnx * dvdnx + dvdny * dvdny);
-            Cf     = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
+                    gradavg[0] = 0.5 * (gradfj[0][ip1][j] + gradfj[0][ip1][j + 1]);
+                    gradavg[1] = 0.5 * (gradfj[1][ip1][j] + gradfj[1][ip1][j + 1]);
+                    gradavg[2] = 0.5 * (gradfj[2][ip1][j] + gradfj[2][ip1][j + 1]);
+                    gradavg[3] = 0.5 * (gradfj[3][ip1][j] + gradfj[3][ip1][j + 1]);*/
 
-            sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
-                << p << "\t" << T << "\t" << a << "\t" << Mach << "\t"
-                << mav << "\t" << kav << "\t" << Cf << "\t" << std::endl;
+                    //to compute Cf
+                    gradavg[0] = 0.5 * (gradfj[0][id][j] + gradfj[0][id][j + 1]);
+                    gradavg[1] = 0.5 * (gradfj[1][id][j] + gradfj[1][id][j + 1]);
+                    gradavg[2] = 0.5 * (gradfj[2][id][j] + gradfj[2][id][j + 1]);
+                    gradavg[3] = 0.5 * (gradfj[3][id][j] + gradfj[3][id][j + 1]);
+
+                    //std::cout<<"gradnx="<<i<<"gradny="<<j<<"gradnx="<<id<<"gradny="<<ib<<std::endl;
+                    //std::cout<<"gradnx="<<gradfj[0][id][2]<<"\t"<<"gradny="<<gradfj[1][id][2]<<"\t"<<"gradnx="
+                      //       <<gradfj[2][id][2]<<"\t"<<"gradny="<<gradfj[3][id][2]<<std::endl;
+
+                    /*sx = -0.5 * (sj[0][ip1][j] + sj[0][ip1][j + 1]);
+                    sy = -0.5 * (sj[1][ip1][j] + sj[1][ip1][j + 1]);
+                    ds = sqrt(sx * sx + sy * sy);
+                    nx = sx / ds;
+                    ny = sy / ds;
+
+                    gradnx = gradavg[0] * nx + gradavg[1] * ny;
+                    gradny = gradavg[2] * nx + gradavg[3] * ny;
+                    gradnn = gradnx * nx + gradny * ny;
+                    dvdnx  = gradnx - gradnn * nx;
+                    dvdny  = gradny - gradnn * ny;
+                    sgn    = Sign(gradnx);
+                    dvdna  = sqrt(dvdnx * dvdnx + dvdny * dvdny);
+                    Cf     = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);*/
+
+                    sx = -0.5 * (sj[0][id][j] + sj[0][id][j + 1]);
+                    sy = -0.5 * (sj[1][id][j] + sj[1][id][j + 1]);
+                    ds = sqrt(sx * sx + sy * sy);
+                    nx = sx / ds;
+                    ny = sy / ds;
+
+                    gradnx = gradavg[0] * nx + gradavg[1] * ny;
+                    gradny = gradavg[2] * nx + gradavg[3] * ny;
+                    gradnn = gradnx * nx + gradny * ny;
+                    dvdnx  = gradnx - gradnn * nx;
+                    dvdny  = gradny - gradnn * ny;
+                    sgn    = Sign(gradnx);
+                    dvdna  = sqrt(dvdnx * dvdnx + dvdny * dvdny);
+                    Cf     = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
+
+
+                    sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
+                        << p << "\t" << T << "\t" << a << "\t" << Mach << "\t"
+                        << mav << "\t" << kav << "\t" << Cf << "\t" << std::endl;
+                }
+            }
+            else if(bind==2){
+
+                counter=0;
+                sur << "Zone T = \"2\"," <<"I = " << (end_seg-beg_seg) <<","<<"\t"<< " F = POINT" << std::endl;
+
+                for (int j = beg_seg; j <= end_seg; j++) {
+                    int i = sur_ind;
+                    counter++;
+
+                    if(j==jd1) jd = jb;
+                    else jd = j;
+
+                    rho = 0.25 * (dv[0][i][jd] + dv[0][i-1][jd] + dv[0][i - 1][jd - 1] + dv[0][i][jd - 1]);
+                    u   = 0.25 * (dv[1][i][jd] + dv[1][i-1][jd] + dv[1][i - 1][jd - 1] + dv[1][i][jd - 1]);
+                    v   = 0.25 * (dv[2][i][jd] + dv[2][i-1][jd] + dv[2][i - 1][jd - 1] + dv[2][i][jd - 1]);
+                    p   = 0.25 * (dv[3][i][jd] + dv[3][i-1][jd] + dv[3][i - 1][jd - 1] + dv[3][i][jd - 1]);
+                    T   = 0.25 * (dv[4][i][jd] + dv[4][i-1][jd] + dv[4][i - 1][jd - 1] + dv[4][i][jd - 1]);
+                    a   = 0.25 * (dv[5][i][jd] + dv[5][i-1][jd] + dv[5][i - 1][jd - 1] + dv[5][i][jd - 1]);
+                    mav = 0.25 * (dv[6][i][jd] + dv[6][i-1][jd] + dv[6][i - 1][jd - 1] + dv[6][i][jd - 1]);
+                    kav = 0.25 * (dv[7][i][jd] + dv[7][i-1][jd] + dv[7][i - 1][jd - 1] + dv[7][i][jd - 1]);
+
+                    gradavg[0] = 0.5 * (gradfj[0][i][jd] + gradfj[0][i - 1][jd]);
+                    gradavg[1] = 0.5 * (gradfj[1][i][jd] + gradfj[1][i - 1][jd]);
+                    gradavg[2] = 0.5 * (gradfj[2][i][jd] + gradfj[2][i - 1][jd]);
+                    gradavg[3] = 0.5 * (gradfj[3][i][jd] + gradfj[3][i - 1][jd]);
+
+                    sx = -0.5 * (si[0][i][jd] + si[0][i - 1][jd]);
+                    sy = -0.5 * (si[1][i][jd] + si[1][i - 1][jd]);
+                    ds = sqrt(sx * sx + sy * sy);
+                    nx = sx / ds;
+                    ny = sy / ds;
+                    gradnx = gradavg[0] * nx + gradavg[1] * ny;
+                    gradny = gradavg[2] * nx + gradavg[3] * ny;
+                    gradnn = gradnx * nx + gradny * ny;
+                    dvdnx = gradnx - gradnn * nx;
+                    dvdny = gradny - gradnn * ny;
+                    sgn = Sign(gradnx);
+                    dvdna = sqrt(dvdnx * dvdnx + dvdny * dvdny);
+                    Cf = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
+
+                    sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
+                        << p << "\t" << T << "\t" << a << "\t" << Mach << "\t"
+                        << mav << "\t" << kav << "\t" << Cf << "\t" << std::endl;
+                }
+            }
+
+            else if(bind==3){
+                counter=0;
+                sur << "Zone T = \"3\"," <<"I = " << (end_seg-beg_seg) <<","<<"\t"<< " F = POINT" << std::endl;
+
+                for (int i = beg_seg; i <= end_seg; i++) {
+                    int j = sur_ind;
+
+                    //to compute Cf
+                    if(i==id1) id = ib;
+                    else id = i;
+
+                    counter++;
+                    rho = 0.25 * (dv[0][id][j] + dv[0][id - 1][j] + dv[0][id - 1][j - 1] + dv[0][id][j - 1]);
+                    u   = 0.25 * (dv[1][id][j] + dv[1][id - 1][j] + dv[1][id - 1][j - 1] + dv[1][id][j - 1]);
+                    v   = 0.25 * (dv[2][id][j] + dv[2][id - 1][j] + dv[2][id - 1][j - 1] + dv[2][id][j - 1]);
+                    p   = 0.25 * (dv[3][id][j] + dv[3][id - 1][j] + dv[3][id - 1][j - 1] + dv[3][id][j - 1]);
+                    T   = 0.25 * (dv[4][id][j] + dv[4][id - 1][j] + dv[4][id - 1][j - 1] + dv[4][id][j - 1]);
+                    a   = 0.25 * (dv[5][id][j] + dv[5][id - 1][j] + dv[5][id - 1][j - 1] + dv[5][id][j - 1]);
+                    mav = 0.25 * (dv[6][id][j] + dv[6][id - 1][j] + dv[6][id - 1][j - 1] + dv[6][id][j - 1]);
+                    kav = 0.25 * (dv[7][id][j] + dv[7][id - 1][j] + dv[7][id - 1][j - 1] + dv[7][id][j - 1]);
+
+                    gradavg[0] = 0.5 * (gradfj[0][id][j] + gradfj[0][id][j - 1]);
+                    gradavg[1] = 0.5 * (gradfj[1][id][j] + gradfj[1][id][j - 1]);
+                    gradavg[2] = 0.5 * (gradfj[2][id][j] + gradfj[2][id][j - 1]);
+                    gradavg[3] = 0.5 * (gradfj[3][id][j] + gradfj[3][id][j - 1]);
+
+                    sx = -0.5 * (sj[0][id][j] + sj[0][id][j - 1]);
+                    sy = -0.5 * (sj[1][id][j] + sj[1][id][j - 1]);
+                    ds = sqrt(sx * sx + sy * sy);
+                    nx = sx / ds;
+                    ny = sy / ds;
+                    gradnx = gradavg[0] * nx + gradavg[1] * ny;
+                    gradny = gradavg[2] * nx + gradavg[3] * ny;
+                    gradnn = gradnx * nx + gradny * ny;
+                    dvdnx = gradnx - gradnn * nx;
+                    dvdny = gradny - gradnn * ny;
+                    sgn = Sign(gradnx);
+                    dvdna = sqrt(dvdnx * dvdnx + dvdny * dvdny);
+                    Cf = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
+
+                    sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
+                        << p << "\t" << T << "\t" << a << "\t" << Mach << "\t"
+                        << mav << "\t" << kav << "\t" << Cf << "\t" << std::endl;
+                }
+            }
+
+            else if(bind==4){
+                counter=0;
+                sur << "Zone T = \"4\"," <<"I = " << (end_seg-beg_seg) <<","<<"\t"<< " F = POINT" << std::endl;
+
+                for (int j = beg_seg; j <= end_seg; j++) {
+                    int i = sur_ind;
+                    counter++;
+                    if(j==jd1) jd = jb;
+                    else jd = j;
+
+                    rho = 0.25 * (dv[0][i][jd] + dv[0][i ][jd - 1] + dv[0][i + 1][jd - 1] + dv[0][i + 1][jd]);
+                    u   = 0.25 * (dv[1][i][jd] + dv[1][i ][jd - 1] + dv[1][i + 1][jd - 1] + dv[1][i + 1][jd]);
+                    v   = 0.25 * (dv[2][i][jd] + dv[2][i ][jd - 1] + dv[2][i + 1][jd - 1] + dv[2][i + 1][jd]);
+                    p   = 0.25 * (dv[3][i][jd] + dv[3][i ][jd - 1] + dv[3][i + 1][jd - 1] + dv[3][i + 1][jd]);
+                    T   = 0.25 * (dv[4][i][jd] + dv[4][i ][jd - 1] + dv[4][i + 1][jd - 1] + dv[4][i + 1][jd]);
+                    a   = 0.25 * (dv[5][i][jd] + dv[5][i ][jd - 1] + dv[5][i + 1][jd - 1] + dv[5][i + 1][jd]);
+                    mav = 0.25 * (dv[6][i][jd] + dv[6][i ][jd - 1] + dv[6][i + 1][jd - 1] + dv[6][i + 1][jd]);
+                    kav = 0.25 * (dv[7][i][jd] + dv[7][i ][jd - 1] + dv[7][i + 1][jd - 1] + dv[7][i + 1][jd]);
+
+
+                    gradavg[0] = 0.5 * (gradfj[0][i][jd] + gradfj[0][i + 1][jd]);
+                    gradavg[1] = 0.5 * (gradfj[1][i][jd] + gradfj[1][i + 1][jd]);
+                    gradavg[2] = 0.5 * (gradfj[2][i][jd] + gradfj[2][i + 1][jd]);
+                    gradavg[3] = 0.5 * (gradfj[3][i][jd] + gradfj[3][i + 1][jd]);
+
+                    sx = -0.5 * (si[0][i][jd] + si[0][i + 1][jd]);
+                    sy = -0.5 * (si[1][i][jd] + si[1][i + 1][jd]);
+                    ds = sqrt(sx * sx + sy * sy);
+                    nx = sx / ds;
+                    ny = sy / ds;
+                    gradnx = gradavg[0] * nx + gradavg[1] * ny;
+                    gradny = gradavg[2] * nx + gradavg[3] * ny;
+                    gradnn = gradnx * nx + gradny * ny;
+                    dvdnx = gradnx - gradnn * nx;
+                    dvdny = gradny - gradnn * ny;
+                    sgn = Sign(gradnx);
+                    dvdna = sqrt(dvdnx * dvdnx + dvdny * dvdny);
+                    Cf = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
+
+                    sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
+                        << p << "\t" << T << "\t" << a << "\t" << Mach << "\t" << mav << "\t" << kav << "\t" << Cf << "\t"
+                        << std::endl;
+                }
+            }
+            else{
+                std::cout<<"wrong input fot the bind: Can't write surface values"<<std::endl;
+                exit(0);
+            }
+        }
+        else{
+            continue;
         }
     }
-    else if(bind==2){
-        counter=0;
-        sur << "Zone T = \"2\"," <<"I = " << jb <<","<<"\t"<< " F = POINT" << std::endl;
 
-        for (int j = beg_seg; j <= end_seg; j++) {
-            int i = sur_ind;
-            counter++;
-
-            if(j==jd1) jd = jb;
-            else jd = j;
-
-            rho = 0.25 * (dv[0][i][jd] + dv[0][i-1][jd] + dv[0][i - 1][jd - 1] + dv[0][i][jd - 1]);
-            u   = 0.25 * (dv[1][i][jd] + dv[1][i-1][jd] + dv[1][i - 1][jd - 1] + dv[1][i][jd - 1]);
-            v   = 0.25 * (dv[2][i][jd] + dv[2][i-1][jd] + dv[2][i - 1][jd - 1] + dv[2][i][jd - 1]);
-            p   = 0.25 * (dv[3][i][jd] + dv[3][i-1][jd] + dv[3][i - 1][jd - 1] + dv[3][i][jd - 1]);
-            T   = 0.25 * (dv[4][i][jd] + dv[4][i-1][jd] + dv[4][i - 1][jd - 1] + dv[4][i][jd - 1]);
-            a   = 0.25 * (dv[5][i][jd] + dv[5][i-1][jd] + dv[5][i - 1][jd - 1] + dv[5][i][jd - 1]);
-            mav = 0.25 * (dv[6][i][jd] + dv[6][i-1][jd] + dv[6][i - 1][jd - 1] + dv[6][i][jd - 1]);
-            kav = 0.25 * (dv[7][i][jd] + dv[7][i-1][jd] + dv[7][i - 1][jd - 1] + dv[7][i][jd - 1]);
-
-            gradavg[0] = 0.5 * (gradfj[0][i][jd] + gradfj[0][i - 1][jd]);
-            gradavg[1] = 0.5 * (gradfj[1][i][jd] + gradfj[1][i - 1][jd]);
-            gradavg[2] = 0.5 * (gradfj[2][i][jd] + gradfj[2][i - 1][jd]);
-            gradavg[3] = 0.5 * (gradfj[3][i][jd] + gradfj[3][i - 1][jd]);
-
-            sx = -0.5 * (si[0][i][jd] + si[0][i - 1][jd]);
-            sy = -0.5 * (si[1][i][jd] + si[1][i - 1][jd]);
-            ds = sqrt(sx * sx + sy * sy);
-            nx = sx / ds;
-            ny = sy / ds;
-            gradnx = gradavg[0] * nx + gradavg[1] * ny;
-            gradny = gradavg[2] * nx + gradavg[3] * ny;
-            gradnn = gradnx * nx + gradny * ny;
-            dvdnx = gradnx - gradnn * nx;
-            dvdny = gradny - gradnn * ny;
-            sgn = Sign(gradnx);
-            dvdna = sqrt(dvdnx * dvdnx + dvdny * dvdny);
-            Cf = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
-
-            sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
-                << p << "\t" << T << "\t" << a << "\t" << Mach << "\t"
-                << mav << "\t" << kav << "\t" << Cf << "\t" << std::endl;
-        }
-    }
-
-    else if(bind==3){
-        counter=0;
-        sur << "Zone T = \"3\"," <<"I = " << ib <<","<<"\t"<< " F = POINT" << std::endl;
-
-        for (int i = beg_seg; i <= end_seg; i++) {
-            int j = sur_ind;
-
-            //to compute Cf
-            if(i==id1) id = ib;
-            else id = i;
-
-            counter++;
-            rho = 0.25 * (dv[0][id][j] + dv[0][id - 1][j] + dv[0][id - 1][j - 1] + dv[0][id][j - 1]);
-            u   = 0.25 * (dv[1][id][j] + dv[1][id - 1][j] + dv[1][id - 1][j - 1] + dv[1][id][j - 1]);
-            v   = 0.25 * (dv[2][id][j] + dv[2][id - 1][j] + dv[2][id - 1][j - 1] + dv[2][id][j - 1]);
-            p   = 0.25 * (dv[3][id][j] + dv[3][id - 1][j] + dv[3][id - 1][j - 1] + dv[3][id][j - 1]);
-            T   = 0.25 * (dv[4][id][j] + dv[4][id - 1][j] + dv[4][id - 1][j - 1] + dv[4][id][j - 1]);
-            a   = 0.25 * (dv[5][id][j] + dv[5][id - 1][j] + dv[5][id - 1][j - 1] + dv[5][id][j - 1]);
-            mav = 0.25 * (dv[6][id][j] + dv[6][id - 1][j] + dv[6][id - 1][j - 1] + dv[6][id][j - 1]);
-            kav = 0.25 * (dv[7][id][j] + dv[7][id - 1][j] + dv[7][id - 1][j - 1] + dv[7][id][j - 1]);
-
-            gradavg[0] = 0.5 * (gradfj[0][id][j] + gradfj[0][id][j - 1]);
-            gradavg[1] = 0.5 * (gradfj[1][id][j] + gradfj[1][id][j - 1]);
-            gradavg[2] = 0.5 * (gradfj[2][id][j] + gradfj[2][id][j - 1]);
-            gradavg[3] = 0.5 * (gradfj[3][id][j] + gradfj[3][id][j - 1]);
-
-            sx = -0.5 * (sj[0][id][j] + sj[0][id][j - 1]);
-            sy = -0.5 * (sj[1][id][j] + sj[1][id][j - 1]);
-            ds = sqrt(sx * sx + sy * sy);
-            nx = sx / ds;
-            ny = sy / ds;
-            gradnx = gradavg[0] * nx + gradavg[1] * ny;
-            gradny = gradavg[2] * nx + gradavg[3] * ny;
-            gradnn = gradnx * nx + gradny * ny;
-            dvdnx = gradnx - gradnn * nx;
-            dvdny = gradny - gradnn * ny;
-            sgn = Sign(gradnx);
-            dvdna = sqrt(dvdnx * dvdnx + dvdny * dvdny);
-            Cf = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
-
-            sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
-                << p << "\t" << T << "\t" << a << "\t" << Mach << "\t"
-                << mav << "\t" << kav << "\t" << Cf << "\t" << std::endl;
-        }
-    }
-
-    else if(bind==4){
-        counter=0;
-        sur << "Zone T = \"4\"," <<"I = " << jb <<","<<"\t"<< " F = POINT" << std::endl;
-
-        for (int j = beg_seg; j <= end_seg; j++) {
-            int i = sur_ind;
-            counter++;
-            if(j==jd1) jd = jb;
-            else jd = j;
-
-            rho = 0.25 * (dv[0][i][jd] + dv[0][i ][jd - 1] + dv[0][i + 1][jd - 1] + dv[0][i + 1][jd]);
-            u   = 0.25 * (dv[1][i][jd] + dv[1][i ][jd - 1] + dv[1][i + 1][jd - 1] + dv[1][i + 1][jd]);
-            v   = 0.25 * (dv[2][i][jd] + dv[2][i ][jd - 1] + dv[2][i + 1][jd - 1] + dv[2][i + 1][jd]);
-            p   = 0.25 * (dv[3][i][jd] + dv[3][i ][jd - 1] + dv[3][i + 1][jd - 1] + dv[3][i + 1][jd]);
-            T   = 0.25 * (dv[4][i][jd] + dv[4][i ][jd - 1] + dv[4][i + 1][jd - 1] + dv[4][i + 1][jd]);
-            a   = 0.25 * (dv[5][i][jd] + dv[5][i ][jd - 1] + dv[5][i + 1][jd - 1] + dv[5][i + 1][jd]);
-            mav = 0.25 * (dv[6][i][jd] + dv[6][i ][jd - 1] + dv[6][i + 1][jd - 1] + dv[6][i + 1][jd]);
-            kav = 0.25 * (dv[7][i][jd] + dv[7][i ][jd - 1] + dv[7][i + 1][jd - 1] + dv[7][i + 1][jd]);
-
-
-            gradavg[0] = 0.5 * (gradfj[0][i][jd] + gradfj[0][i + 1][jd]);
-            gradavg[1] = 0.5 * (gradfj[1][i][jd] + gradfj[1][i + 1][jd]);
-            gradavg[2] = 0.5 * (gradfj[2][i][jd] + gradfj[2][i + 1][jd]);
-            gradavg[3] = 0.5 * (gradfj[3][i][jd] + gradfj[3][i + 1][jd]);
-
-            sx = -0.5 * (si[0][i][jd] + si[0][i + 1][jd]);
-            sy = -0.5 * (si[1][i][jd] + si[1][i + 1][jd]);
-            ds = sqrt(sx * sx + sy * sy);
-            nx = sx / ds;
-            ny = sy / ds;
-            gradnx = gradavg[0] * nx + gradavg[1] * ny;
-            gradny = gradavg[2] * nx + gradavg[3] * ny;
-            gradnn = gradnx * nx + gradny * ny;
-            dvdnx = gradnx - gradnn * nx;
-            dvdny = gradny - gradnn * ny;
-            sgn = Sign(gradnx);
-            dvdna = sqrt(dvdnx * dvdnx + dvdny * dvdny);
-            Cf = 2.0 * sgn * mav * dvdna / (rhoinf * qinf * qinf);
-
-            sur << counter << "\t" << x[i][j] << "\t" << y[i][j] << "\t" << rho << "\t" << u << "\t" << v << "\t"
-                << p << "\t" << T << "\t" << a << "\t" << Mach << "\t" << mav << "\t" << kav << "\t" << Cf << "\t"
-                << std::endl;
-        }
-    }
-    else{
-        std::cout<<"wrong input fot the bind: Can't write surface values"<<std::endl;
-        exit(0);
-    }
     sur.close();
     delete gradavg;
 }

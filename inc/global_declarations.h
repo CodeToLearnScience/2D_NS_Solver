@@ -47,8 +47,8 @@ extern double Resn1, Resn2, Resn3, Resn4;
 /****global strings declared here, which will be used throughout the code*****/
 extern std::string flo_intr_extr, flux_type, grid_file, vort_corr, time_step, RestartFile, MeshFile, test_case,
         MeshTopFile;
-extern int eqn_type, flow_type, space_accuracy, time_accuracy, dimen, inviscid_scheme, visc_method, scaling_factor, restart,
-        MaxIter, restart_iter;
+extern int eqn_type, flow_type, space_accuracy, time_accuracy, dimen, inviscid_scheme, visc_method, scaling_factor,
+    restart, disp_freq, outp_freq, MaxIter, restart_iter;
 
 
 /****global pointers declared here, which will be used throughout the code*****/
@@ -90,8 +90,8 @@ void Dependent_Variables(int id2, int jd2, double ***&cv, double ***&dv);
 
 void Dependent_Variables_One(int i, int j, double ***&cv, double ***&dv);
 
-void Forces(int bind, int bnode, int sbind, int ebind, int ndvar, double **&x, double **&y, double ***&dv,
-            double ***&si, double ***&sj);
+void Forces(int *&bc_flag, int *&bound_ind, int *&bound_cell, int *&strt_bound_seg, int *&end_bound_seg, double **&x,
+            double **&y, double ***&dv, double ***&si, double ***&sj);
 
 void Bc_Transmitive(int bind, int bnode, int sbind, int ebind, double ***&cv, double ***&dv);
 
@@ -228,8 +228,9 @@ void Residue_Cal(int iter, double dt, double t, double ***&cv, double ***&cvold,
 void Write_Solution(int id1, int jd1, int iter, double t, double **&x, double **&y, double ***&cv);
 void Interior_Solution(int bind, int indx, int beg_seg, int end_seg, int id1, int jd1, int iter, double t, double **&x,
                        double **&y, double ***&cv, double ***&dv, double ***&gradfi, double ***&gradfj);
-void Write_Surf_Solution(int bind, int sur_ind, int beg_seg, int end_seg, int id1, int jd1, int iter, double t, double **&x, double **&y, double ***&cv,
-                         double ***&dv, double ***&gradfi, double ***&gradfj);
+void Write_Surf_Solution(int *&bc_flag, int *&bound_ind, int *&bound_cell, int *&strt_bound_seg, int *&end_bound_seg,
+        int id1, int jd1, int iter, double t, double **&x, double **&y, double ***&cv, double ***&dv, double ***&gradfi,
+        double ***&gradfj);
 void WriteRestartFile(int ib, int jb, int iter, double t, double ***&dv);
 void Avg_Flux1(int ib, int id1, int jb, int jd1, double ***&cv, double ***&dv, double ***&si, double ***&sj,
                double ***&diss, double ***&rhs);

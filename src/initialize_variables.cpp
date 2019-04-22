@@ -11,7 +11,7 @@ int maxeqn, restart_iter;
 std::string MeshFile, MeshTopFile, flo_intr_extr, flux_type, grid_file, vort_corr, time_step,
         RestartFile, test_case;
 int eqn_type, flow_type, time_accuracy, space_accuracy, dimen, inviscid_scheme, visc_method, scaling_factor, restart,
-        MaxIter;
+        disp_freq, outp_freq, MaxIter;
 double cfl;
 
 /****variables related to boundary conditons****/

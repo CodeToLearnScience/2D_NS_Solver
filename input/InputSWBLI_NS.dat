@@ -3,7 +3,7 @@
 #input parameters for solving 2D Euler/NS equations on a structured grid        #
 #################################################################################
 #Test case name (this name will be used to write output files)
-SWBLI_141121
+SWBLI_roeZB	
 #Equations to be solved (Euler=0, for NSE=1)
 1
 #Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
@@ -13,13 +13,13 @@ SWBLI_141121
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 0
 #Insvicid descretization method (see end of the file for description)
-29
+24
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
 1
 #viscous descritization method (Green Gauss=0, Least square=1, only GG available)
 0
 #cfl number
-0.1
+0.4
 #scaling factor (for appropreate Re)
 1
 #restart solution (no=0, yes=1)
@@ -32,6 +32,10 @@ SWBLIGrid141121.dat
 GridTopSWBLI_NS_141_121.dat
 #restart file 
 SWBLI_ECCS_IsoCont105_65Iter44000.dat
+#display frequecy. Progress will be written for chosen iterations
+100
+#Output frequency. Output will be written for the chosen freq
+1000
 #Maximum number of iterations
 250000
 ######################Flow parameters/Dimensional################################

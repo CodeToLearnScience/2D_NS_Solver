@@ -1,5 +1,5 @@
 #ignore all the .o (object) and .d (dependency) files
-/obj/* 
+obj/
 
 #ignore executable located in binary
 /bin/*
@@ -11,3 +11,4 @@
 /src/.idea/*
 /src/CMakeLists.txt
 /src/cmake-build-debug/*
+/src/src.exe.stackdump

@@ -1,12 +1,12 @@
 #include "../inc/global_declarations.h"
 #include "../inc/basic_functions.h"
 
-void Forces(int bind, int bnode, int sbind, int ebind, int ndvar, double **&x, double **&y, double ***&dv,
-            double ***&si, double ***&sj) {
+void Forces(int *&bc_flag, int *&bound_ind, int *&bound_cell, int *&strt_bound_seg, int *&end_bound_seg, double **&x,
+            double **&y, double ***&dv, double ***&si, double ***&sj) {
 
     double cx, cy, sx, sy, pwall, xa, ya, dcy, dcx;
     double xref, yref, cref;
-
+    int bnode;
     cx = 0;
     cy = 0;
     cm = 0;
@@ -14,20 +14,32 @@ void Forces(int bind, int bnode, int sbind, int ebind, int ndvar, double **&x, d
     yref = 0.0;
     cref = 1.0;
     int dum1, dum2, ins1, ins2;
-    if (bind == 1 or bind == 4) {
-        dum1 = bnode;
-        dum2 = bnode - 1;
-        ins1 = bnode + 1;
-        ins2 = bnode + 2;
-    } else if (bind == 2 or bind == 3) {
-        dum1 = bnode;
-        dum2 = bnode + 1;
-        ins1 = bnode - 1;
-        ins2 = bnode - 2;
-    } else {
-        std::cout << "Inflo b.c., please check the boundary index, 1=bottom, 2=right, 3=top, 4=left" << std::endl;
-        exit(0);
+
+    for(int bc=0; bc<no_boun_seg; bc++) {
+        if(bc_flag[bc]==30 or bc_flag[bc]==40 or bc_flag[bc]==50){ //Euler wall boundary condition
+            //BC_wall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
+            bind = bound_ind[bc]; bnode = bound_cell[bc]; sbind = strt_bound_seg[bc]; ebind = end_bound_seg[bc];
+            if (bind == 1 or bind == 4) {
+                dum1 = bnode;
+                dum2 = bnode - 1;
+                ins1 = bnode + 1;
+                ins2 = bnode + 2;
+            } else if (bind == 2 or bind == 3) {
+                dum1 = bnode;
+                dum2 = bnode + 1;
+                ins1 = bnode - 1;
+                ins2 = bnode - 2;
+            } else {
+                std::cout << "Inflo b.c., please check the boundary index, 1=bottom, 2=right, 3=top, 4=left" << std::endl;
+                exit(0);
+            }
+        }
+        else{
+            continue;
+        }
     }
+
+
 
     if (bind == 1 or bind == 3) {
 
