@@ -5,7 +5,7 @@
 #Test case name (this name will be used to write output files)
 RiemannWedgeEulerNKFDS2
 #Nature of the flow (steady=0, unsteady=1)
-1
+0
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 2
 #Insvicid descretization method (see end of the file for description)
@@ -19,7 +19,7 @@ RiemannWedgeEulerNKFDS2
 #mesh file
 WedgeReflection400400_other.dat
 #grid size (Nx*Ny)
-400 400
+20 20
 #Mesh topology file containing boundary informations
 GridTopWedgeReflection400400.dat
 #restart file 
@@ -36,21 +36,21 @@ Something.dat
 #Dir along which diaphragm is placed (0 for x-dir and 1 for y-dir)
 0
 #grid number at which it is placed
-42
+12
 #Density to the left of diaphragm
-7.208510638
+1.4
 #Density to the right of diaphragm
 1.4
 #u-velocity to the left of diaphragm
-4.43182
+3.0
 #u-velocity to the right of diaphragm
-0.0
+2.0
 #v-velocity to the left of diaphragm
 0.0
 #v-velocity to the right of diaphragm
 0.0
 #Pressure to the left of diaphragm
-35.125
+1.0
 #Pressure to the right of diaphragm
 1.0
 ###################################End of Input File#############################

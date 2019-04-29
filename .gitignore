@@ -12,3 +12,4 @@ obj/
 /src/CMakeLists.txt
 /src/cmake-build-debug/*
 /src/src.exe.stackdump
+/input/*~
