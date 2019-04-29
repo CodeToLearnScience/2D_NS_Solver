@@ -1,63 +1,56 @@
 #################################################################################
 #Author: Maruthi N. H., email: maruthinh@gmail.com					            # 
-#input parameters for solving 2D Euler/NS equations on a structured grid        #
+#input parameters for solving 2D Euler Riemann Problem                          #
 #################################################################################
 #Test case name (this name will be used to write output files)
-RampEulerNKFDS
-#Equations to be solved (Euler=0, for NSE=1)
-0
-#Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
-1	
+RiemannWedgeEulerNKFDS2
 #Nature of the flow (steady=0, unsteady=1)
-0
+1
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
-0
+2
 #Insvicid descretization method (see end of the file for description)
 30
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
 1
-#viscous descritization method (Green Gauss=0, Least square=1, only GG available)
-0
 #cfl number
-0.1
-#scaling factor (for appropreate Re)
-0.0381
+0.2
 #restart solution (no=0, yes=1)
 0
 #mesh file
-RampGrid24080.dat
+WedgeReflection400400_other.dat
 #grid size (Nx*Ny)
-240 80
+400 400
 #Mesh topology file containing boundary informations
-GridTopRampEuler24080.dat
+GridTopWedgeReflection400400.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations
-500
+100
 #Output frequency. Output will be written for the chosen freq
-5000
+100
 #Maximum number of iterations
 300000
-######################Flow parameters/Dimensional################################
-#Reynolds number
-257354.0
-#Mach number
-2.0
-#Reference length (Lref)
-0.0381
-#Angle of attack (in degrees)
+#Maximum time at which programme will be stopped for unsteady problems
+0.25
+######################Flow parameters################################
+#Dir along which diaphragm is placed (0 for x-dir and 1 for y-dir)
 0
-#Inlet pressure (pa)
-101325.0
-#Inlet temperature (K)
-298.0
-######################Flow parameters/Non-Dimensional############################
-#ref pressure (pa)
-100000
-#ref temperature (K)
-300
-#ref density (kg/m^3)
-1.12
-#ref velocity
-1
+#grid number at which it is placed
+42
+#Density to the left of diaphragm
+7.208510638
+#Density to the right of diaphragm
+1.4
+#u-velocity to the left of diaphragm
+4.43182
+#u-velocity to the right of diaphragm
+0.0
+#v-velocity to the left of diaphragm
+0.0
+#v-velocity to the right of diaphragm
+0.0
+#Pressure to the left of diaphragm
+35.125
+#Pressure to the right of diaphragm
+1.0
 ###################################End of Input File#############################

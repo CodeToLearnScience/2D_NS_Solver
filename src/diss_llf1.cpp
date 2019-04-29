@@ -7,9 +7,9 @@ T MaxEigVal(T ur, T ul, T vr, T vl, T ar, T al, T nx, T ny);
 void Diss_LLF1(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv, double ***&dv, double ***&si,
                double ***&sj, double ***&diss) {
 
-    int im1, jm1;
-    double nx, ny, ds, rhol, ul, vl, rhor, ur, vr, pl, pr;
-    double ar, al, max_eig;
+    int im1=0, jm1=0;
+    double nx=0.0, ny=0.0, ds=0.0, rhol=0.0, ul=0.0, vl=0.0, rhor=0.0, ur=0.0, vr=0.0, pl=0.0, pr=0.0;
+    double ar=0.0, al=0.0, max_eig=0.0;
     double *fd, *fr, *fl, *Ur, *Ul;
 
     fd = new double[nconv];
@@ -17,6 +17,14 @@ void Diss_LLF1(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv
     fl = new double[nconv];
     Ur = new double[nconv];
     Ul = new double[nconv];
+
+    for(int i=0; i<nconv; i++){
+        fr[i] = 0.0;
+        fl[i] = 0.0;
+        Ur[i] = 0.0;
+        Ul[i] = 0.0;
+        fd[i] = 0.0;
+    }
 
     for(int k=0; k<nconv; k++){
         for (int j = 2; j <= jb; j++) {
@@ -42,12 +50,20 @@ void Diss_LLF1(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv
             ul = dv[1][im1][j];
             vl = dv[2][im1][j];
             pl = dv[3][im1][j];
+            if(pl<0){
+                std::cout<<"the val of pl in flux conv defns is="<<pl<<std::endl;
+                exit(0);
+            }
             al = sqrt(Gamma * pl / rhol);
 
             rhor = dv[0][i][j];
             ur = dv[1][i][j];
             vr = dv[2][i][j];
             pr = dv[3][i][j];
+            if(pr<0){
+                std::cout<<"the val of pl in flux conv defns is="<<pr<<std::endl;
+                exit(0);
+            }
             ar = sqrt(Gamma * pr / rhor);
 
             max_eig = MaxEigVal(ur, ul, vr, vl, ar, al, nx, ny);
@@ -91,6 +107,10 @@ void Diss_LLF1(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv
             ur = dv[1][i][j];
             vr = dv[2][i][j];
             pr = dv[3][i][j];
+            if(pl<0){
+                std::cout<<"the val of pr in flux conv defns is="<<pr<<std::endl;
+                exit(0);
+            }
             ar = sqrt(Gamma * pr / rhor);
 
             max_eig = MaxEigVal(ur, ul, vr, vl, ar, al, nx, ny);

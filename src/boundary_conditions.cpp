@@ -18,7 +18,6 @@ void Boundary_Conditions(int ib, int id1, int id2, int jb, int jd1, int jd2, dou
     Dependent_Variables_One(1, jd1, cv, dv);
     Dependent_Variables_One(id1, jd1, cv, dv);
 
-
     int no_of_pres_count=-1;
     for(int bc=0; bc<no_boun_seg; bc++) {
         if(pres_input_flag[bc]==0 and bc_flag[bc]==10){ //prescribed inflow b.c
@@ -39,6 +38,7 @@ void Boundary_Conditions(int ib, int id1, int id2, int jb, int jd1, int jd2, dou
         }
         else if(bc_flag[bc]==30){ //Euler wall boundary condition
             BC_wall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
+            //BC_Eulerwall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
         }
         else if(bc_flag[bc]==40){ //navier-stokes wall boundary condition
             //std::cout<<"I am applying b.c 40"<<std::endl;

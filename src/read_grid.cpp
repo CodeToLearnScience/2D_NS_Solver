@@ -55,12 +55,12 @@ void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1
         y[id2][j] = y[id1][j];
     }
 
-    for (int j = 0; j <= jd2; j++) {
+    /*for (int j = 0; j <= jd2; j++) {
         for (int i = 0; i <= id2; i++) {
 
             //std::cout << k << "\t" << x[i][j] << "\t" << y[i][j] << std::endl;
             std::cout<<"i="<< i<<"\t"<<"j="<<j<<"\t"<< x[i][j] << "\t" << y[i][j] << std::endl;
         }
-    }
+    }*/
 }
     

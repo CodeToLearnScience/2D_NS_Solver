@@ -49,7 +49,7 @@ void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nco
             tstep[i][j] = cfl*area[i][j] / (sri[i][j] + srj[i][j]);
 
             if(tstep[i][j]==0 or tstep[i][j]<0.0){
-                std::cout<<"values inside time_step are:"<<"srvi="<<tstep[i][j]<<std::endl;
+                std::cout<<"values inside time_step are:"<<"tstep[i][j]="<<tstep[i][j]<<std::endl;
                 exit(0);
             }
 

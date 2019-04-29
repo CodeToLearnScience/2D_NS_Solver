@@ -34,12 +34,19 @@ extern int *pres_input_flag, *bc_flag, *bound_ind, *bound_cell, *strt_bound_seg,
 extern double pres_rho, pres_u, pres_v, pres_p;
 extern double **pres_rhouvp;
 
+/****these are the direction along which diaphragm is placed. 0 for x and 1 for y. And ind indicates the location of
+ * the diapragm. But given interms of grid number.****/
+extern int interface_flag, interface_ind;
+
 /****other variables used throughout the code****/
 extern double Machinf, Re_inf, Lref, rhoinf, uinf, vinf, pinf, tinf, alpha, pref, rhoref, velref, Tref, qinf, cp, cl,
         cd, cm, Twall_iso,
         minject, tinject, maxwchg, maxichg, ttinl, ptinl, pout, betainl, betaout, Rgas, Cp, refvisc, Xref, Yref,
         epsirs, restart_t;
 extern double iGlobalMaxEigVal, iGlobalMinEigVal, jGlobalMaxEigVal, jGlobalMinEigVal;
+
+/***variable to store left and right states of the interface for 2D Riemann problem***/
+extern double rho_l, rho_r, u_l, u_r, v_l, v_r, p_l, p_r;
 
 /****for residue calculation****/
 extern double Resn1, Resn2, Resn3, Resn4;
@@ -49,6 +56,7 @@ extern std::string flo_intr_extr, flux_type, grid_file, vort_corr, time_step, Re
         MeshTopFile;
 extern int eqn_type, flow_type, space_accuracy, time_accuracy, dimen, inviscid_scheme, visc_method, scaling_factor,
     restart, disp_freq, outp_freq, MaxIter, restart_iter;
+extern double tot_time;
 
 
 /****global pointers declared here, which will be used throughout the code*****/
@@ -250,10 +258,13 @@ void KFDS_2ndOrder(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
               double ***&iAvgFlux, double ***&jAvgFlux, double ***&iFluxDiff, double ***&jFluxDiff,
               double ***&iConVarDiff, double ***&jConVarDiff);
 void ReadSolverInput(const std::string& SolverInputFile);
+void Read2DEulerRiemannProbInput(const std::string& RiemannSolverInputFile);
 void InitFlowDimensional(int id2, int jd2, double Re_inf, double Machinf, double Lref,  double alpha, double pinf,
                          double ***&cv, double ***&dv);
 void InitFlowNonDimensional(int id2, int jd2, double Re_inf, double Machinf, double Lref,  double alpha, double ***&cv,
                             double ***&dv);
+void Init2D_RiemannEuler(int id2, int jd2, int interface_flag, int interface_ind, double rho_l, double u_l, double v_l,
+                    double p_l, double rho_r, double u_r, double v_r, double p_r, double ***&cv, double ***&dv);
 void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&bc_flag, int *&bound_ind,
                       int *&bound_cell, int *&strt_bound_seg, int *&end_bound_seg, double **&pres_rhouvp);
 void extractIntegerWords(std::string str);
@@ -261,5 +272,9 @@ void Diss_ECCS(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv
                double ***&sj, double ***&diss);
 void Diss_MOVERS_NWSC(int ib, int id1, int jb, int jd1, double ***&cv, double ***&dv, double ***&si, double ***&sj,
                       double ***&diss);
+void Diss_NKFDS_MOVERS(int ib, int id1, int jb, int jd1, double ***&cv, double ***&dv, double ***&si, double ***&sj,
+                       double ***&diss);
+void Diss_NKFDS_MOVERS_2O(int ib, int id1, int jb, int jd1, double ***&cv, double ***&dv, double ***&si, double ***&sj,
+                          double ***&diss);
 
 #endif  //#ifndef _Header_H

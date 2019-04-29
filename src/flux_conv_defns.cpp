@@ -8,16 +8,21 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
                    double ***&iAvgFlux, double ***&jAvgFlux, double ***&iFluxDiff, double ***&jFluxDiff,
                    double ***&iConVarDiff, double ***&jConVarDiff){
 
-    double rhoa, rhoua, rhova, rhoea, pa, vcont;
-    int im1, jm1;
-    double nx, ny, ds, rhoinv, rhol, ul, vl, rhor, ur, vr, pl, pr, El, Er, ar, al, hl, hr, gam1, ggm1;
+    double rhoa=0.0, rhoua=0.0, rhova=0.0, rhoea=0.0, pa=0.0, vcont=0.0;
+    int im1=0, jm1=0;
+    double nx=0.0, ny=0.0, ds=0.0, rhoinv=0.0, rhol=0.0, ul=0.0, vl=0.0, rhor=0.0, ur=0.0, vr=0.0, pl=0.0, pr=0.0,
+    El=0.0, Er=0.0, hl=0.0, hr=0.0, gam1=0.0;
     double *fr, *fl;
 
     fr = new double[nconv];
     fl = new double[nconv];
 
+    for(int i=0; i<nconv; i++){
+        fr[i] = 0.0;
+        fl[i] = 0.0;
+    }
+
     gam1 = Gamma - 1.0;
-    ggm1 = Gamma / gam1;
 
     //Conserved variable differences
         for (int j = 2; j <= jb; j++) {
@@ -32,9 +37,15 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
                 ul = dv[1][im1][j];
                 vl = dv[2][im1][j];
                 pl = dv[3][im1][j];
+
+                if(pl<0){
+                    std::cout<<"the val of pl in flux conv defns is="<<pl<<std::endl;
+                    exit(0);
+                }
+
                 El = pl / (gam1) + 0.5 * rhol * (ul * ul + vl * vl);
                 hl = pl / rhol + El;
-                al = sqrt(Gamma * pl / rhol);
+
 
                 rhor = dv[0][i][j];
                 ur = dv[1][i][j];
@@ -42,7 +53,6 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
                 pr = dv[3][i][j];
                 Er = pr / (gam1) + 0.5 * rhor * (ur * ur + vr * vr);
                 hr = pr / rhor + Er;
-                ar = sqrt(Gamma * pr / rhor);
 
                 iConVarDiff[0][i][j] = rhor - rhol;
                 iConVarDiff[1][i][j] = rhor*ur - rhol*ul;
@@ -81,15 +91,20 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
             pl = dv[3][i][jm1];
             El = pl / (gam1) + 0.5 * rhol * (ul * ul + vl * vl);
             hl = pl / rhol + El;
-            al = sqrt(Gamma * pl / rhol);
+
 
             rhor = dv[0][i][j];
             ur = dv[1][i][j];
             vr = dv[2][i][j];
             pr = dv[3][i][j];
+            if(pr<0){
+                std::cout<<"the val of pr in flux conv defns is="<<pr<<std::endl;
+                exit(0);
+            }
+
             Er = pr / (gam1) + 0.5 * rhor * (ur * ur + vr * vr);
             hr = pr / rhor + Er;
-            ar = sqrt(Gamma * pr / rhor);
+
 
             jConVarDiff[0][i][j] = rhor - rhol;
             jConVarDiff[1][i][j] = rhor*ur - rhol*ul;
@@ -181,6 +196,11 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
            rhoea = 0.5 * (dv[3][i][j-1]/(Gamma-1.0)+0.5*dv[0][i][j-1]*(dv[1][i][j-1]*dv[1][i][j-1]+dv[2][i][j-1] *
                    dv[2][i][j-1]) + dv[3][i][j]/(Gamma-1.0)+0.5*dv[0][i][j]*(dv[1][i][j]*dv[1][i][j]+dv[2][i][j] * dv[2][i][j]));
            pa =    0.5 * (dv[3][i][j-1] + dv[3][i][j]);
+
+            if(pa<0){
+                std::cout<<"the avg val of p in flux conv defns is="<<pa<<std::endl;
+                exit(0);
+            }
 
            vcont = (rhoua * sj[0][i][j] + rhova * sj[1][i][j]) / rhoa;
 

@@ -5,9 +5,13 @@ void Avg_Conv_Flux1(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
                     double ***&si, double ***&sj, double ***&diss, double ***&rhs) {
 
     double *fc;
-    double rhoa, rhoua, rhova, rhoea, pa, vcont;
+    double rhoa=0.0, rhoua=0.0, rhova=0.0, rhoea=0.0, pa=0.0, vcont=0.0;
 
     fc = new double[nconv];
+
+    for(int i=0; i<nconv; i++){
+        fc[i] = 0.0;
+    }
 
     for(int k=0; k<nconv; k++){
         for (int j = 2; j <= jb; j++) {
@@ -27,6 +31,11 @@ void Avg_Conv_Flux1(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
                     dv[2][i-1][j]) + dv[3][i][j]/(Gamma-1.0)+0.5*dv[0][i][j]*(dv[1][i][j]*dv[1][i][j]+dv[2][i][j]*
                     dv[2][i][j]));
             pa =    0.5 * (dv[3][i-1][j] + dv[3][i][j]);
+
+            if(pa<0){
+                std::cout<<"the avg val of p in i-dir in avg_con_flux1 is="<<pa<<std::endl;
+                exit(0);
+            }
 
             vcont = (rhoua * si[0][i][j] + rhova * si[1][i][j]) / rhoa;
 
@@ -58,7 +67,10 @@ void Avg_Conv_Flux1(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
                         dv[2][i][j-1]) + dv[3][i][j]/(Gamma-1.0)+0.5*dv[0][i][j]*(dv[1][i][j]*dv[1][i][j]+dv[2][i][j] *
                         dv[2][i][j]));
                 pa =    0.5 * (dv[3][i][j-1] + dv[3][i][j]);
-
+                if(pa<0){
+                    std::cout<<"the avg val of p in i-dir in avg_con_flux1 is="<<pa<<std::endl;
+                    exit(0);
+                }
                 vcont = (rhoua * sj[0][i][j] + rhova * sj[1][i][j]) / rhoa;
 
                 fc[0] = vcont * rhoa;

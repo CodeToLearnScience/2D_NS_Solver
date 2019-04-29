@@ -10,8 +10,8 @@ void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&b
     std::ifstream infile;
 
     infile.open("../input/" + MeshTopFile);
-
-    if (infile.fail()) {
+    std::cout<<"read top file="<<"../input/" + MeshTopFile<<std::endl;
+    if(!infile){
         std::cerr << "File couldn't be opened to read the grid topology" << std::endl;
         std::exit(1);
     }
@@ -19,6 +19,7 @@ void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&b
     std::cout << "---------------------------------------------------------" << std::endl
               << "Reading grid topology file" << std::endl
               << "---------------------------------------------------------" << std::endl;
+
 
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;

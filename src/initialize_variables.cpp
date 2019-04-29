@@ -19,6 +19,11 @@ int bind, sbind, ebind, pbind, spbind, epbind, idum1, idum2, jdum1, jdum2,
         iins1, iins2, jins1, jins2, iresmax, jresmax;
 int no_boun_seg, no_bounseg_prescinp;
 int *pres_input_flag=NULL, *bc_flag=NULL, *bound_ind=NULL, *bound_cell=NULL, *strt_bound_seg=NULL, *end_bound_seg=NULL;
+
+/****these are the direction along which diaphragm is placed. 0 for x and 1 for y. And ind indicates the location of
+the diapragm. But given interms of grid number.****/
+int interface_flag, interface_ind;
+
 double iGlobalMaxEigVal, iGlobalMinEigVal, jGlobalMaxEigVal, jGlobalMinEigVal;
 double pres_rho, pres_u, pres_v, pres_p;
 double **pres_rhouvp;
@@ -36,6 +41,11 @@ double *Icond, *Prim_var_L, *Prim_var_R, *limref;
 double ***cv, ***cvold, ***dv, ***rhs, ***dui, ***duj, ***cui, ***cuj, ***si, ***sj, ***pbvar, ***diss, ***epsij, ***gradfi, ***gradfj;
 double **x, **y, **xc, **yc, **p, **area, **sri, **srj, **tstep, **u, **v, **dirs;
 double ***iAvgFlux, ***jAvgFlux, ***iFluxDiff, ***jFluxDiff, ***iConVarDiff, ***jConVarDiff, ***irhs, ***jrhs;
+
+double rho_l, rho_r, u_l, u_r, v_l, v_r, p_l, p_r;
+
+/***time at which unsteady flow will be stopped***/
+double tot_time;
 
 std::ofstream Res;
 /**************  to allocate 1d array***********/

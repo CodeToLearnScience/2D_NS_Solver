@@ -3,54 +3,54 @@
 #input parameters for solving 2D Euler/NS equations on a structured grid        #
 #################################################################################
 #Test case name (this name will be used to write output files)
-HypersonicCyl_Mov1
+ObliqueShockRefEuler
 #Equations to be solved (Euler=0, for NSE=1)
-1
+0
 #Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
-1	
+0	
 #Nature of the flow (steady=0, unsteady=1)
 0
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
-2
+0
 #Insvicid descretization method (see end of the file for description)
-24
+0
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
-2
+0
 #viscous descritization method (Green Gauss=0, Least square=1, only GG available)
 0
 #cfl number
-0.05
+0.3
 #scaling factor (for appropreate Re)
 0.0381
 #restart solution (no=0, yes=1)
 0
 #mesh file
-HemiCylinderGrid192128.dat
+FFSGrid6020.dat
 #grid size (Nx*Ny)
-192 128
+60 20
 #Mesh topology file containing boundary informations
-GridTopHypersonicFlowNS.dat
+GridTopObliqueShockRefEuler6020.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations
-1000
+100
 #Output frequency. Output will be written for the chosen freq
-10000
+1000
 #Maximum number of iterations
-300000
+100000
 ######################Flow parameters/Dimensional################################
 #Reynolds number
 257354.0
 #Mach number
-8.03
+2.9
 #Reference length (Lref)
 0.0381
 #Angle of attack (in degrees)
 0
 #Inlet pressure (pa)
-985.01
+1.0/1.4
 #Inlet temperature (K)
-111.56
+1.0/1.4
 ######################Flow parameters/Non-Dimensional############################
 #ref pressure (pa)
 100000

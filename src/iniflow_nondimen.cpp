@@ -7,16 +7,34 @@
 void InitFlowNonDimensional(int id2, int jd2, double Re_inf, double Machinf, double Lref,  double alpha, double ***&cv,
                             double ***&dv) {
 
-    //std::cout<<"I am  here in initialization"<<std::endl;
-    rhoinf = 1.0, tinf=1.0, qinf = 1.0;
-
-    refvisc = Lref/Re_inf;
-    Rgas    = 1.0/(Gamma*Machinf*Machinf);
-    Cp      = 1.0/((Gamma-1.0)*Machinf*Machinf);
-    pinf    = rhoinf*Rgas*tinf;
-    alpha   = alpha/rad;
-    uinf    = qinf*cos(alpha);
-    vinf    = qinf*sin(alpha);
+    if(eqn_type==0){
+        std::cout<<"solving Euler equations in Non-dimensional form"<<std::endl;
+        //std::cout<<"I am  here in initialization"<<std::endl;
+        //rhoinf = 1.0, tinf=1.0, qinf = 1.0;
+        rhoinf  = 1.0, tinf=1.0/1.4, qinf = Machinf;
+        Rgas    = 1.0;
+        Cp      = 1.0/((Gamma-1.0)*Machinf*Machinf);
+        pinf    = rhoinf*Rgas*tinf;
+        alpha   = alpha/rad;
+        uinf    = qinf*cos(alpha);
+        vinf    = qinf*sin(alpha);
+    }
+    else if(eqn_type==1){
+        std::cout<<"solving Navier-Stokes equations in Non-dimensional form"<<std::endl;
+        //std::cout<<"I am  here in initialization"<<std::endl;
+        rhoinf  = 1.0, tinf=1.0, qinf = 1.0;
+        refvisc = Lref/Re_inf;
+        Rgas    = 1.0/(Gamma*Machinf*Machinf);
+        Cp      = 1.0/((Gamma-1.0)*Machinf*Machinf);
+        pinf    = rhoinf*Rgas*tinf;
+        alpha   = alpha/rad;
+        uinf    = qinf*cos(alpha);
+        vinf    = qinf*sin(alpha);
+    }
+    else{
+        std::cout<<"wrong equation type: please enter 0 for Euler and 1 for NSE"<<std::endl;
+        exit(0);
+    }
 
     std::cout<<"the values are at Ic_cond:"<<rhoinf<<"\t"<<Rgas<<"\t"<<qinf<<"\t"<<uinf<<"\t"<<pinf<<"\t"<<refvisc<<
              std::endl;

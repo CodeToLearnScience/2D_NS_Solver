@@ -50,8 +50,8 @@ void Residue_Cal(int iter, double dt, double t, double ***&cv, double ***&cvold,
 
     Res<<iter<<"\t"<<dt<<"\t"<<t<<"\t"<<log10(Resn1)<<"\t"<<iresmax<<"\t"<<jresmax<<"\t"<<cl<<"\t"<<cd<<"\t"<<cm<<std::endl;
 
-    if(Resn1<1e-10){
-        std::cout<<"Results are converged to 1e-10"<<std::endl;
+    if(Resn1<1e-14){
+        std::cout<<"Results are converged to 1e-14"<<std::endl;
         exit(0);
     }
 }

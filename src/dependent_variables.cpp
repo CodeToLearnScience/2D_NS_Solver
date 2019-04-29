@@ -32,8 +32,15 @@ void Dependent_Variables(int id2, int jd2, double ***&cv, double ***&dv) {
         for (int i = 0; i <= id2; i++) {
 
             if (dv[0][i][j] < 0) {
-                std::cout << "pressure became negative at i=" << i << "\t" << "and at j=" << j << std::endl;
+                std::cout << "in dependent var fun: density became negative at i=" << i << "\t" << "and at j=" << j
+                << std::endl;
                 std::cout << dv[0][i][j] << std::endl;
+                exit(0);
+            }
+            else if (dv[3][i][j] < 0) {
+                std::cout << "in dependent var fun: pressure became negative at i=" << i << "\t" << "and at j=" << j
+                << std::endl;
+                std::cout << dv[3][i][j] << std::endl;
                 exit(0);
             }
         }

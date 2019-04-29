@@ -3,8 +3,8 @@
 
 void BC_wall(int bind, int bnode, int sbind, int ebind, double ***&cv,
              double ***&dv) {
-    double nx, ny, ds, vnor, vtan, u, v, p, E;
-    int dum1, dum2, ins1, ins2;
+    double nx=0.0, ny=0.0, ds=0.0, vnor=0.0, vtan=0.0, u=0.0, v=0.0, p=0.0, E=0.0;
+    int dum1=0, dum2=0, ins1=0, ins2=0;
     maxwchg = 0.0;
 
     if (bind == 1 or bind == 4) {
@@ -54,6 +54,13 @@ void BC_wall(int bind, int bnode, int sbind, int ebind, double ***&cv,
             //dv[1][i][dum1] = -dv[1][i][ins1];
             //dv[2][i][dum1] = -dv[2][i][ins1];
             dv[3][i][dum1] = dv[3][i][ins1];
+            if(dv[3][i][dum1]<0){
+                std::cout<<"in bc_wall fun: pressure value in boundary condition is="<<"bind="<<bind<<"\t"<<"bnode="
+                <<bnode<<"\t"<<"start ind="<<sbind<<"\t"<<"end_bind="<<ebind<<"\t"<<"pressure val is="<<dv[3][i][dum1]
+                <<std::endl;
+                exit(0);
+            }
+
             dv[4][i][dum1] = dv[3][i][dum1] / (dv[0][i][dum1] * Rgas);                      //temp
             dv[5][i][dum1] = sqrt(Gamma * dv[3][i][dum1] / dv[0][i][dum1]);                 //sound speed
             if(dimen==0){
@@ -108,6 +115,12 @@ void BC_wall(int bind, int bnode, int sbind, int ebind, double ***&cv,
             dv[1][dum1][j] = u; //u
             dv[2][dum1][j] = v; //v
             dv[3][dum1][j] = dv[3][ins1][j]; //p
+            if(dv[3][dum1][j]<0){
+                std::cout<<"in bc_wall fun: pressure value in boundary condition is="<<"bind="<<bind<<"\t"<<"bnode="
+                         <<bnode<<"\t"<<"start ind="<<sbind<<"\t"<<"end_bind="<<ebind<<"\t"<<"pressure val is="
+                         <<dv[3][dum1][j]<<std::endl;
+                exit(0);
+            }
             dv[4][dum1][j] = dv[3][dum1][j] / (dv[0][dum1][j] * Rgas); //T
             dv[5][dum1][j] = sqrt(Gamma*dv[3][dum1][j]/dv[0][dum1][j]); //a
             if(dimen==0){

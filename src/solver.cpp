@@ -226,6 +226,13 @@ void ComputeFluxes(double **&x, double **&y,
         else if(inviscid_scheme==29){
             Diss_MOVERS_NWSC(ib, id1, jb, jd1, cv, dv, si, sj, diss);
         }
+        else if(inviscid_scheme==30) {
+            Diss_NKFDS_MOVERS_2O(ib, id1, jb, jd1, cv, dv, si, sj, diss);
+        }
+        else{
+            std::cout<<"wrong input to the second order scheme flag. Please enter right one"<<std::endl;
+            exit(0);
+        }
     }
 
     else if(space_accuracy==0){
@@ -252,6 +259,14 @@ void ComputeFluxes(double **&x, double **&y,
                           jConVarDiff);
             KFDS_1stOrder(id2, jd2, id1, jd1, ib, jb, cv, dv, iAvgFlux, jAvgFlux, iFluxDiff, jFluxDiff, iConVarDiff,
                           jConVarDiff);
+        }
+        else if(inviscid_scheme==7) {
+
+            Diss_NKFDS_MOVERS(ib, id1, jb, jd1, cv, dv, si, sj, diss);
+        }
+        else{
+            std::cout<<"wrong input to the first order scheme flag. Please enter right one"<<std::endl;
+            exit(0);
         }
     }
 
