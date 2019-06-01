@@ -13,23 +13,23 @@ FfsEuler
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 0
 #Insvicid descretization method (see end of the file for description)
-0
+7
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
 0
 #viscous descritization method (Green Gauss=0, Least square=1, only GG available)
 0
 #cfl number
-0.3
+0.6
 #scaling factor (for appropreate Re)
 0.0381
 #restart solution (no=0, yes=1)
 0
 #mesh file
-FFSGrid6020.dat
+FFSGrid24080.dat
 #grid size (Nx*Ny)
-60 20
+240 80
 #Mesh topology file containing boundary informations
-GridTopFfsEuler6020.dat
+GridTopFfsEuler24080.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations
@@ -37,7 +37,7 @@ Something.dat
 #Output frequency. Output will be written for the chosen freq
 1000
 #Maximum number of iterations
-100000
+30000
 ######################Flow parameters/Dimensional################################
 #Reynolds number
 257354.0

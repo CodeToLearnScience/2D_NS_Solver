@@ -29,6 +29,7 @@ void Diss_LLF1(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv
     for(int k=0; k<nconv; k++){
         for (int j = 2; j <= jb; j++) {
             for (int i = 2; i <= ib; i++) {
+
                 rhs[k][i][j] = -diss[k][i][j];
             }
         }

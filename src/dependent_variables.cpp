@@ -50,7 +50,7 @@ void Dependent_Variables(int id2, int jd2, double ***&cv, double ***&dv) {
 
 void Dependent_Variables_One(int i, int j, double ***&cv, double ***&dv) {
 
-    double rhoq;
+    double rhoq=0.0;
 
     dv[0][i][j] = cv[0][i][j];
     dv[1][i][j] = cv[1][i][j]/cv[0][i][j];
@@ -69,8 +69,8 @@ void Dependent_Variables_One(int i, int j, double ***&cv, double ***&dv) {
     }
 
     if ((dv[0][i][j] != dv[0][i][j]) or (dv[1][i][j] != dv[1][i][j]) or (dv[2][i][j] != dv[2][i][j])) {
-        std::cout << "The values at the boundary from depen var fun, p, temp, sound are at i, j=" << i << "\t" << j << "\t" << dv[0][i][j]
-                  << "\t" << dv[1][i][j] << "\t" << dv[2][i][j] <<"and ib, jb, id1, jd1 are="<<ib<<"\t"<<jb<<"\t"<<id1<<"\t"<<jd1<<std::endl;
+        std::cout << "The values at the boundary from Dependent_Variable_One fun: i=" << i << "\t" <<"j="<< j << "\t"
+        << "rho="<<dv[0][i][j]<<"\t"<<"u="<<dv[1][i][j]<<"\t"<<"v="<<dv[2][i][j]<<"\t"<<"p="<<dv[3][i][j]<<std::endl;
         exit(0);
     }
 }

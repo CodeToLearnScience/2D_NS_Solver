@@ -16,6 +16,7 @@ void Avg_Conv_Flux1(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
     for(int k=0; k<nconv; k++){
         for (int j = 2; j <= jb; j++) {
             for (int i = 2; i <= ib; i++) {
+
                 rhs[k][i][j] = -diss[k][i][j];
             }
         }
@@ -24,6 +25,7 @@ void Avg_Conv_Flux1(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
     for (int j = 2; j <= jb; j++) {
         //flux in i direction except at the boundaries
         for (int i = 2; i <= id1; i++) {
+
             rhoa =  0.5 * (dv[0][i-1][j] + dv[0][i][j]);
             rhoua = 0.5 * (dv[1][i-1][j] * dv[0][i-1][j] + dv[1][i][j] * dv[0][i][j]);
             rhova = 0.5 * (dv[2][i-1][j] * dv[0][i-1][j] + dv[2][i][j] * dv[0][i][j]);
@@ -60,6 +62,7 @@ void Avg_Conv_Flux1(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
         //if (j > 1) {
             //flux in j-direction except at boundaries
             for (int i = 2; i <= ib; i++) {
+
                 rhoa =  0.5 * (dv[0][i][j-1] + dv[0][i][j]);
                 rhoua = 0.5 * (dv[1][i][j-1]*dv[0][i][j-1] + dv[1][i][j]*dv[0][i][j]);
                 rhova = 0.5 * (dv[2][i][j-1]*dv[0][i][j-1] + dv[2][i][j]*dv[0][i][j]);

@@ -13,3 +13,4 @@ obj/
 /src/cmake-build-debug/*
 /src/src.exe.stackdump
 /input/*~
+/.dropbox

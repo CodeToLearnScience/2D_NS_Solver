@@ -41,6 +41,7 @@ void Diss_NKFDS_MOVERS(int ib, int id1, int jb, int jd1, double ***&cv, double *
 
     for (int j = 2; j <= jb; j++) {
         for (int i = 2; i <= id1; i++) {
+
           temp = dv[3][i][j] / (gam1) + 0.5 * dv[0][i][j] * (dv[1][i][j] * dv[1][i][j] + dv[2][i][j] * dv[2][i][j]);
           if (temp > emax){
               emax = temp;

@@ -10,6 +10,7 @@ void Solver(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv, int n
 
     for (int j = 2; j <= jb; j++) {
         for (int i = 2; i <= ib; i++) {
+
             cvold[0][i][j] = cv[0][i][j];
             cvold[1][i][j] = cv[1][i][j];
             cvold[2][i][j] = cv[2][i][j];
@@ -38,6 +39,7 @@ void Solver(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv, int n
 
             for (int j = 2; j <= jb; j++) {
                 for (int i = 2; i <= ib; i++) {
+
                     adtv = tstep[i][j] / area[i][j];
                     rhs[0][i][j] = adtv * rhs[0][i][j];
                     rhs[1][i][j] = adtv * rhs[1][i][j];
@@ -50,6 +52,7 @@ void Solver(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv, int n
 
             for (int j = 2; j <= jb; j++) {
                 for (int i = 2; i <= ib; i++) {
+
                     cv[0][i][j] = cvold[0][i][j] - rhs[0][i][j];
                     cv[1][i][j] = cvold[1][i][j] - rhs[1][i][j];
                     cv[2][i][j] = cvold[2][i][j] - rhs[2][i][j];
@@ -59,7 +62,7 @@ void Solver(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv, int n
 
                     if ((cv[0][i][j] != cv[0][i][j]) or (cv[1][i][j] != cv[1][i][j]) or (cv[2][i][j] != cv[2][i][j]) or
                                (cv[3][i][j] != cv[3][i][j]) or pressure<0.0) {
-                        std::cout << " In solver_explicit: the values of conserved var at i, j=" << i << "\t" << j << "\t"
+                        std::cout << " In solver_explicit: the values of conserved var at i=" << i << "\t" <<"j="<< j << "\t"
                                   << cv[0][i][j] << "\t" << cv[1][i][j] << "\t" << cv[2][i][j] << "\t" << cv[3][i][j]
                                   <<"\t"<<"pressure="<<pressure<< std::endl;
                         exit(0);

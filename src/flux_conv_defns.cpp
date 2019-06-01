@@ -27,6 +27,7 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
     //Conserved variable differences
         for (int j = 2; j <= jb; j++) {
             for (int i = 2; i <= id1; i++) {
+
                 im1 = i-1;
 
                 ds = sqrt(si[0][i][j] * si[0][i][j] + si[1][i][j] * si[1][i][j]);
@@ -79,6 +80,7 @@ void FluxConvDefns(int id2, int jd2, int id1, int jd1, int ib, int jb, double **
     //Conserved variable differences
     for (int j = 2; j <= jd1; j++) {
         for (int i = 2; i <= ib; i++) {
+
             jm1 = j-1;
 
             ds = sqrt(sj[0][i][j] * sj[0][i][j] + sj[1][i][j] * sj[1][i][j]);

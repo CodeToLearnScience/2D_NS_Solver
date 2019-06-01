@@ -43,6 +43,7 @@ void Residue_Cal(int iter, double dt, double t, double ***&cv, double ***&cvold,
                   << "\t" << "iresmax="<<iresmax << "\t" <<"jresmax="<< jresmax << "\t" <<"cl="<< cl << "\t" <<"cd="<<cd
                   << "\t" <<"cm="<< cm << std::endl;
     }
+
     if(iter==1){
         Res << "TITLE = Residue and forces"<< std::endl
             << "VARIABLES = Iter, dt, tot_t, Res_rho, iresmax, jresmax, Cl, Cd, Cm" << std::endl;

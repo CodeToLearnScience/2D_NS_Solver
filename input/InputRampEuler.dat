@@ -25,11 +25,11 @@ RampEulerNKFDS
 #restart solution (no=0, yes=1)
 0
 #mesh file
-RampGrid24080.dat
+RampGrid12040.dat
 #grid size (Nx*Ny)
-240 80
+120 40
 #Mesh topology file containing boundary informations
-GridTopRampEuler24080.dat
+GridTopRampEuler12040.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations

@@ -4,7 +4,7 @@
 void Bc_Prescribed_Inflow(int bind, int bnode, int sbind, int ebind, double rhoinf, double uinf, double vinf,
                           double pinf, double ***&cv, double ***&dv) {
 
-    int dum1, dum2, ins1, ins2;
+    int dum1=0, dum2=0, ins1=0, ins2=0;
 
     if (bind == 1 or bind == 4) {
         dum1 = bnode;
@@ -39,7 +39,6 @@ void Bc_Prescribed_Inflow(int bind, int bnode, int sbind, int ebind, double rhoi
                 dv[6][i][dum1] = ((C0+C1)/(C1+dv[4][i][dum1]))*pow((dv[4][i][dum1]/C0),1.5)*refvisc; //Mu
                 dv[7][i][dum1] = dv[6][i][dum1]*Cp/Pr; //K
             }
-
 
             dv[0][i][dum2] = dv[0][i][dum1];
             dv[1][i][dum2] = dv[1][i][dum1];

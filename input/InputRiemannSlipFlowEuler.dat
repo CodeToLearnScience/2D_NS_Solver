@@ -3,25 +3,25 @@
 #input parameters for solving 2D Euler Riemann Problem                          #
 #################################################################################
 #Test case name (this name will be used to write output files)
-RiemannWedgeEulerNKFDS2
+RiemannSlipFlowEulerNKFDS2
 #Nature of the flow (steady=0, unsteady=1)
-0
-#Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
-2
-#Insvicid descretization method (see end of the file for description)
-30
-#Spatial accuracy of inviscid scheme (first order=0, second order=1)
 1
+#Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
+0
+#Insvicid descretization method (see end of the file for description)
+7
+#Spatial accuracy of inviscid scheme (first order=0, second order=1)
+0
 #cfl number
 0.2
 #restart solution (no=0, yes=1)
 0
 #mesh file
-WedgeReflection400400_other.dat
+SlipFlowGrid2020.dat
 #grid size (Nx*Ny)
 20 20
 #Mesh topology file containing boundary informations
-GridTopWedgeReflection400400.dat
+GridTopSlipFlow2020.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations
@@ -34,7 +34,7 @@ Something.dat
 0.25
 ######################Flow parameters################################
 #Dir along which diaphragm is placed (0 for x-dir and 1 for y-dir)
-0
+1
 #grid number at which it is placed
 12
 #Density to the left of diaphragm
@@ -42,9 +42,9 @@ Something.dat
 #Density to the right of diaphragm
 1.4
 #u-velocity to the left of diaphragm
-3.0
-#u-velocity to the right of diaphragm
 2.0
+#u-velocity to the right of diaphragm
+3.0
 #v-velocity to the left of diaphragm
 0.0
 #v-velocity to the right of diaphragm

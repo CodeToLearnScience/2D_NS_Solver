@@ -6,8 +6,8 @@ int main(int argc, char** argv) {
     std::cout << std::ios::dec;
     std::cout << std::scientific;
     
-    //ReadSolverInput(argv[1]);
-    Read2DEulerRiemannProbInput(argv[1]);
+    ReadSolverInput(argv[1]);
+    //Read2DEulerRiemannProbInput(argv[1]);
 
     ib = Nx + 1, jb = Ny + 1, id1 = Nx + 2, id2 = Nx + 3, jd1 = Ny + 2, jd2 = Ny + 3, imax = Nx + 4, jmax = Ny + 4;
 
@@ -23,9 +23,9 @@ int main(int argc, char** argv) {
     Grid_Computations(ib, jb, id1, id2, jd1, jd2, x, y, area, si, sj);
 
     //exit(0);
-    Init2D_RiemannEuler(id2, jd2, interface_flag, interface_ind, rho_l, u_l, v_l, p_l, rho_r, u_r, v_r, p_r, cv, dv);
+    //Init2D_RiemannEuler(id2, jd2, interface_flag, interface_ind, rho_l, u_l, v_l, p_l, rho_r, u_r, v_r, p_r, cv, dv);
 
-    /*if(dimen==0){
+    if(dimen==0){
         InitFlowNonDimensional(id2, jd2, Re_inf, Machinf, Lref,  alpha, cv, dv);
     }
     else if(dimen==1) {
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     else{
         std::cout<<"wrong input for dimensionality of the eqns"<<std::endl;
         exit(0);
-    }*/
+    }
 
     if (restart==0){
         Res.open("../output/Residue_"+test_case+std::to_string(Nx)+"_"+std::to_string(Ny)+".dat");

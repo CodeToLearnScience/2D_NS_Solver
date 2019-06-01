@@ -22,6 +22,10 @@ void BC_Eulerwall(int bind, int bnode, int sbind, int ebind, double ***&cv, doub
         std::cout << "Euler b.c., please check the boundary index, 1=bottom, 2=right, 3=top, 4=left and bind is =" <<bind<<std::endl;
         exit(0);
     }
+
+    //std::cout<<"the dummy and inside nodes are for side: bind="<<bind<<"\t"<<"dum1="<<dum1<<"\t"<<"dum2="<<dum2<<"\t"<<"ins1="<<ins1<<"\t"<<"ins2="
+    //<<ins2<<std::endl;
+
     if (bind == 1 or bind == 3) {
         for (int i = sbind; i <= ebind; i++) {
             /*rho = 2.0 * cv[0][i][ins1] - cv[0][i][ins2];
@@ -30,9 +34,7 @@ void BC_Eulerwall(int bind, int bnode, int sbind, int ebind, double ***&cv, doub
                 or ((fabs(cv[3][i][dum1]) - rhoe) > maxwchg * cv[3][i][dum1])) {*/
             dv[0][i][dum1] = dv[0][i][ins1];
             dv[1][i][dum1] = dv[1][i][ins1];
-            dv[2][i][dum1] = dv[2][i][ins1];
-            //dv[1][i][dum1] = -dv[1][i][ins1];
-            //dv[2][i][dum1] = -dv[2][i][ins1];
+            dv[2][i][dum1] = -dv[2][i][ins1];
             dv[3][i][dum1] = dv[3][i][ins1];
             dv[4][i][dum1] = dv[3][i][dum1] / (dv[0][i][dum1] * Rgas);                      //temp
             dv[5][i][dum1] = sqrt(Gamma * dv[3][i][dum1] / dv[0][i][dum1]);                 //sound speed
