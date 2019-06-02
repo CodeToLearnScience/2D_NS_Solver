@@ -115,7 +115,7 @@ void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nco
             }
         }*/
 
-    if(epsirs>0.0){
+    /*if(epsirs>0.0){
         cflrat = sqrt(1.0+4.0*epsirs);
         for (int j = 2; j <= jb; j++) {
             for (int i = 2; i <= ib; i++) {
@@ -129,7 +129,7 @@ void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nco
                 epsij[1][i][j] = std::max(0.0, ey);
             }
         }
-    }
+    }*/
 
 
     tsmin = 1e32;

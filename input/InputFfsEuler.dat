@@ -7,7 +7,7 @@ FfsEuler
 #Equations to be solved (Euler=0, for NSE=1)
 0
 #Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
-0	
+1	
 #Nature of the flow (steady=0, unsteady=1)
 0
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)

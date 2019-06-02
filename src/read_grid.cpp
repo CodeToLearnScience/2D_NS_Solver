@@ -17,7 +17,7 @@ void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1
 
 
     while (!infile.eof()) {
-        for (int j = 2; j <= id1; j++) {
+        for (int j = 2; j <= jd1; j++) {
             for (int i = 2; i <= id1; i++) {
 
                 infile >> k >> x[i][j] >> y[i][j];
@@ -34,6 +34,15 @@ void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1
     }
 
     infile.close();
+	
+    int j=2;
+    //for (int j = 0; j <= jd2; j++) {
+        for (int i = 2; i <= id1; i++) {
+
+            //std::cout << k << "\t" << x[i][j] << "\t" << y[i][j] << std::endl;
+            std::cout<<"i="<< i<<"\t"<<"j="<<j<<"\t"<< x[i][j] << "\t" << y[i][j] << std::endl;
+        }
+    //}
 
     //grid points for dummy cells
 
@@ -55,12 +64,5 @@ void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1
         y[id2][j] = y[id1][j];
     }
 
-    /*for (int j = 0; j <= jd2; j++) {
-        for (int i = 0; i <= id2; i++) {
-
-            //std::cout << k << "\t" << x[i][j] << "\t" << y[i][j] << std::endl;
-            std::cout<<"i="<< i<<"\t"<<"j="<<j<<"\t"<< x[i][j] << "\t" << y[i][j] << std::endl;
-        }
-    }*/
 }
     
