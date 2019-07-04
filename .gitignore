@@ -14,3 +14,4 @@ obj/
 /src/src.exe.stackdump
 /input/*~
 /.dropbox
+/src/.vscode

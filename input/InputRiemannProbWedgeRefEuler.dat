@@ -15,7 +15,7 @@ RiemannWedgeEulerNKFDS2
 #cfl number
 0.1
 #restart solution (no=0, yes=1)
-1
+0
 #mesh file
 WedgeReflection400400_other.dat
 #grid size (Nx*Ny)
@@ -25,9 +25,9 @@ GridTopWedgeReflection400400.dat
 #restart file 
 RiemannWedgeEulerNKFDS2_IsoCont400_400Iter5000.dat
 #display frequecy. Progress will be written for chosen iterations
-100
+50
 #Output frequency. Output will be written for the chosen freq
-500
+100
 #Maximum number of iterations
 300000
 #Maximum time at which programme will be stopped for unsteady problems
