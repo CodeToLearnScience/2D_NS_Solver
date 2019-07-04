@@ -35,7 +35,7 @@ Something.dat
 #display frequecy. Progress will be written for chosen iterations
 500
 #Output frequency. Output will be written for the chosen freq
-5000
+500
 #Maximum number of iterations
 300000
 ######################Flow parameters/Dimensional################################

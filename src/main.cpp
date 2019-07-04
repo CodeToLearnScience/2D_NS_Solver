@@ -83,7 +83,8 @@ int main(int argc, char** argv) {
                    gradfi,  gradfj, cvold, diss, rhs, epsij);
             Residue_Cal(iter, tstep[2][2], time, cv, cvold, dv, si, sj);
             if(iter%outp_freq==0){
-                Write_Solution(id1, jd1, iter, time, x, y, cv);
+                // Write_Solution(id1, jd1, iter, time, x, y, cv);
+                Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
                 //Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj); //fpr cylinder
                 Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
                                     gradfi, gradfj);
@@ -95,7 +96,8 @@ int main(int argc, char** argv) {
     else if (flow_type==1){
         int iter = 0;
         double time_unstd = 0;
-        Write_Solution(id1, jd1, iter, time, x, y, cv);
+        // Write_Solution(id1, jd1, iter, time, x, y, cv);
+        Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
         Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
                             gradfi, gradfj);
         //Interior_Solution(1, 69, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
@@ -110,14 +112,16 @@ int main(int argc, char** argv) {
             Solver(ib, id1, id2, jb, jd1, jd2, nconv, ndvar, x, y, cv, dv, dui, duj, area, si, sj, tstep, sri,  srj,
                    gradfi,  gradfj, cvold, diss, rhs, epsij);
             if(iter%outp_freq==0){
-                Write_Solution(id1, jd1, iter, time_unstd, x, y, cv);
+                // Write_Solution(id1, jd1, iter, time_unstd, x, y, cv);
+                Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
                 Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time_unstd, x, y, cv, dv,
                                     gradfi, gradfj);
                 //Interior_Solution(1, 69, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
                 //WriteRestartFile(ib, jb, iter, time, dv);
             }
         }
-        Write_Solution(id1, jd1, iter, time_unstd, x, y, cv);
+        //Write_Solution(id1, jd1, iter, time_unstd, x, y, cv);
+        Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
         Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time_unstd, x, y, cv, dv,
                             gradfi, gradfj);
     }
@@ -125,7 +129,8 @@ int main(int argc, char** argv) {
         std::cout<<"wrong input for the flow type: it should be 0 for steady and 1 for unsteady"<<std::endl;
     }
 
-    Write_Solution(id1, jd1, iter, time, x, y, cv);
+    //Write_Solution(id1, jd1, iter, time, x, y, cv);
+    Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
     //Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
     Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
             gradfi, gradfj);

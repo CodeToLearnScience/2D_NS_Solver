@@ -276,5 +276,5 @@ void Diss_NKFDS_MOVERS(int ib, int id1, int jb, int jd1, double ***&cv, double *
                        double ***&diss);
 void Diss_NKFDS_MOVERS_2O(int ib, int id1, int jb, int jd1, double ***&cv, double ***&dv, double ***&si, double ***&sj,
                           double ***&diss);
-
+void Write_SolutionVtk(int id1, int jd1, int iter, double t, double **&x, double **&y, double ***&cv);
 #endif  //#ifndef _Header_H
