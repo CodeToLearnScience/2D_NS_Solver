@@ -1,21 +1,21 @@
 #include "../inc/global_declarations.h"
 #include "../inc/basic_functions.h"
 
-template<typename T>
+template <typename T>
 T MaxEigVal(T ur, T ul, T vr, T vl, T ar, T al, T nx, T ny);
 
-template<typename T>
+template <typename T>
 T Minmod_Flux(T del_p, T del_m);
 
-template<typename T>
+template <typename T>
 T VanAlbada_Limiter(T del_plus, T del_minus);
 
-template<typename T>
+template <typename T>
 T Venki_Limiter(T del_plus, T del_minus, T dx);
 
-
 void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv, double ***&dv, double ***&si,
-                    double ***&sj, double ***&diss) {
+                    double ***&sj, double ***&diss)
+{
 
     int im1, jm1, ip1, jp1;
     double nx, ny, dx, dy, ds, rhoinv, rhol, ul, vl, rhor, ur, vr, pl, pr, hl, hr, gam1, ggm1;
@@ -23,11 +23,11 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
     double *fd, *fr, *fl, *Ur, *Ul, *deltl, *deltr;
     //double area_avg;
 
-    fd    = new double[nconv];
-    fr    = new double[nconv];
-    fl    = new double[nconv];
-    Ur    = new double[nconv];
-    Ul    = new double[nconv];
+    fd = new double[nconv];
+    fr = new double[nconv];
+    fl = new double[nconv];
+    Ur = new double[nconv];
+    Ul = new double[nconv];
     deltl = new double[nconv];
     deltr = new double[nconv];
 
@@ -35,8 +35,10 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
     ggm1 = Gamma / gam1;
 
     //compute in i-direction
-    for (int j = 2; j <= jb; j++) {
-        for (int i = 2; i <= id1; i++) {
+    for (int j = 2; j <= jb; j++)
+    {
+        for (int i = 2; i <= id1; i++)
+        {
             im1 = i - 1;
             ip1 = i + 1;
 
@@ -48,9 +50,10 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
             //area_avg = 0.5*(area[im1][j]+area[i][j]);
             //left and right states
 
-            for(int k=0; k<4; k++){
-                deltl[k] = 0.5*dui[k][im1][j]*Minmod_Flux(dui[k][i][j], dui[k][im1][j]);
-                deltr[k] = 0.5*dui[k][i][j]*Minmod_Flux(dui[k][ip1][j], dui[k][i][j]);
+            for (int k = 0; k < 4; k++)
+            {
+                deltl[k] = 0.5 * dui[k][im1][j] * Minmod_Flux(dui[k][i][j], dui[k][im1][j]);
+                deltr[k] = 0.5 * dui[k][i][j] * Minmod_Flux(dui[k][ip1][j], dui[k][i][j]);
 
                 /*deltl[k] = 0.5*dui[k][im1][j]*VanAlbada_Limiter(dui[k][i][j], dui[k][im1][j]);
                 deltr[k] = 0.5*dui[k][i][j]*VanAlbada_Limiter(dui[k][ip1][j], dui[k][i][j]);*/
@@ -69,8 +72,8 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
 
             rhoinv = 1.0 / dv[0][i][j];
             rhor = dv[0][i][j] - deltr[0];
-            ur = dv[1][i][j]  - deltr[1];
-            vr = dv[2][i][j]  - deltr[2];
+            ur = dv[1][i][j] - deltr[1];
+            vr = dv[2][i][j] - deltr[2];
             pr = dv[3][i][j] - deltr[3];
             hr = ggm1 * pr / rhor + 0.5 * (ur * ur + vr * vr);
             ar = sqrt(Gamma * pr / rhor);
@@ -133,8 +136,9 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
             term3 = rho_roe * (u_roe * (ur - ul) + v_roe * (vr - vl));
             fd[3] = 0.5 * (lambda1 * (term1 + term2 + term3) + lambda2 * (alpha1 * r1_E + alpha2 * r2_E));
 
-            //final dissipation terms     
-            for(int k=0; k<4; k++){
+            //final dissipation terms
+            for (int k = 0; k < 4; k++)
+            {
                 diss[k][i][j] = diss[k][i][j] - fd[k] * ds;
                 diss[k][im1][j] = diss[k][im1][j] + fd[k] * ds;
             }
@@ -145,8 +149,10 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
     }
 
     //compute in j-direction
-    for (int i = 2; i <= ib; i++) {
-        for (int j = 2; j <= jd1; j++) {
+    for (int i = 2; i <= ib; i++)
+    {
+        for (int j = 2; j <= jd1; j++)
+        {
             jm1 = j - 1;
             jp1 = j + 1;
 
@@ -159,9 +165,10 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
 
             //left and right states
 
-            for(int k=0; k<4; k++){
-                deltl[k] = 0.5*duj[k][i][jm1]*Minmod_Flux(duj[k][i][j], duj[k][i][jm1]);
-                deltr[k] = 0.5*duj[k][i][j]*Minmod_Flux(duj[k][i][jp1], duj[k][i][j]);
+            for (int k = 0; k < 4; k++)
+            {
+                deltl[k] = 0.5 * duj[k][i][jm1] * Minmod_Flux(duj[k][i][j], duj[k][i][jm1]);
+                deltr[k] = 0.5 * duj[k][i][j] * Minmod_Flux(duj[k][i][jp1], duj[k][i][j]);
 
                 /*deltl[k] = 0.5*duj[k][i][jm1]*VanAlbada_Limiter(duj[k][i][j], duj[k][i][jm1]);
                 deltr[k] = 0.5*duj[k][i][j]*VanAlbada_Limiter(duj[k][i][jp1], duj[k][i][j]);*/
@@ -170,18 +177,16 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
                 deltr[k] = 0.5 * Venki_Limiter(duj[k][i][jp1], duj[k][i][j], dy);*/
             }
 
-
             rhol = dv[0][i][jm1] + deltl[0];
-            ul = dv[1][i][jm1]  + deltl[1];
-            vl = dv[2][i][jm1]  + deltl[2];
+            ul = dv[1][i][jm1] + deltl[1];
+            vl = dv[2][i][jm1] + deltl[2];
             pl = dv[3][i][jm1] + deltl[3];
             hl = ggm1 * pl / rhol + 0.5 * (ul * ul + vl * vl);
             al = sqrt(Gamma * pl / rhol);
 
-
             rhor = dv[0][i][j] - deltr[0];
-            ur = dv[1][i][j]  - deltr[1];
-            vr = dv[2][i][j]  - deltr[2];
+            ur = dv[1][i][j] - deltr[1];
+            vr = dv[2][i][j] - deltr[2];
             pr = dv[3][i][j] - deltr[3];
             hr = ggm1 * pr / rhor + 0.5 * (ur * ur + vr * vr);
             ar = sqrt(Gamma * pr / rhor);
@@ -244,9 +249,10 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
             term3 = rho_roe * (u_roe * (ur - ul) + v_roe * (vr - vl));
             fd[3] = 0.5 * (lambda1 * (term1 + term2 + term3) + lambda2 * (alpha1 * r1_E + alpha2 * r2_E));
 
-            //final dissipation terms     
-            for(int k=0; k<4; k++){
-                diss[k][i][j]   = diss[k][i][j] - fd[k] * ds;
+            //final dissipation terms
+            for (int k = 0; k < 4; k++)
+            {
+                diss[k][i][j] = diss[k][i][j] - fd[k] * ds;
                 diss[k][i][jm1] = diss[k][i][jm1] + fd[k] * ds;
             }
         }
@@ -270,7 +276,8 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
 /*********************Naveens_ROE_TV Scheme************************************/
 
 void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv, double ***&dv, double ***&si,
-                       double ***&sj, double ***&diss) {
+                       double ***&sj, double ***&diss)
+{
 
     int im1, jm1, ip1, jp1;
     double nx, ny, dx, dy, ds, rhoinv, rhol, ul, vl, rhor, ur, vr, pl, pr, hl, hr, El, Er, gam1, ggm1;
@@ -296,8 +303,10 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
     ggm1 = Gamma / gam1;
 
     //compute in i-direction
-    for (int j = 2; j <= jb; j++) {
-        for (int i = 2; i <= id1; i++) {
+    for (int j = 2; j <= jb; j++)
+    {
+        for (int i = 2; i <= id1; i++)
+        {
             im1 = i - 1;
             ip1 = i + 1;
 
@@ -309,9 +318,10 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             //area_avg = 0.5*(area[im1][j]+area[i][j]);
             //left and right states
 
-            for(int k=0; k<4; k++){
-                deltl[k] = 0.5*dui[k][im1][j]*Minmod_Flux(dui[k][i][j], dui[k][im1][j]);
-                deltr[k] = 0.5*dui[k][i][j]*Minmod_Flux(dui[k][ip1][j], dui[k][i][j]);
+            for (int k = 0; k < 4; k++)
+            {
+                deltl[k] = 0.5 * dui[k][im1][j] * Minmod_Flux(dui[k][i][j], dui[k][im1][j]);
+                deltr[k] = 0.5 * dui[k][i][j] * Minmod_Flux(dui[k][ip1][j], dui[k][i][j]);
 
                 /*deltl[k] = 0.5*dui[k][im1][j]*VanAlbada_Limiter(dui[k][i][j], dui[k][im1][j]);
                 deltr[k] = 0.5*dui[k][i][j]*VanAlbada_Limiter(dui[k][ip1][j], dui[k][i][j]);*/
@@ -331,8 +341,8 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
 
             rhoinv = 1.0 / dv[0][i][j];
             rhor = dv[0][i][j] - deltr[0];
-            ur = dv[1][i][j]  - deltr[1];
-            vr = dv[2][i][j]  - deltr[2];
+            ur = dv[1][i][j] - deltr[1];
+            vr = dv[2][i][j] - deltr[2];
             pr = dv[3][i][j] - deltr[3];
             hr = ggm1 * pr / rhor + 0.5 * (ur * ur + vr * vr);
             Er = pr / (gam1) + 0.5 * rhor * (ur * ur + vr * vr);
@@ -356,8 +366,8 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             u_roe = (ul + w * ur) / (1.0 + w);
             v_roe = (vl + w * vr) / (1.0 + w);
             //a_roe = sqrt((al * al * sqrt(rhol) + ar * ar * sqrt(rhor)) / (sqrt(rhol) + sqrt(rhor)));
-            p_avg = 0.5*(pl+pr);
-            a_roe = sqrt(Gamma*p_avg/rho_roe);
+            p_avg = 0.5 * (pl + pr);
+            a_roe = sqrt(Gamma * p_avg / rho_roe);
 
             Vn = u_roe * nx + v_roe * ny;
             Vt = -u_roe * ny + v_roe * nx;
@@ -368,7 +378,6 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             lambda2_a = 0.5 * (Vn - beta);
             lambda3 = 0.5 * fabs(Vn + beta);
             lambda3_a = 0.5 * (Vn + beta);
-
 
             r1_M = 0.0;
             r1_x = nx;
@@ -397,7 +406,8 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             fd[3] = 0.5 * (lambda1 * (term1 + term2) + lambda2 * alpha1 * r1_E + alpha2 * lambda3 * r2_E);
 
             //final dissipation terms
-            for(int k=0; k<4; k++){
+            for (int k = 0; k < 4; k++)
+            {
                 diss[k][i][j] = diss[k][i][j] - fd[k] * ds;
                 diss[k][im1][j] = diss[k][im1][j] + fd[k] * ds;
             }
@@ -405,8 +415,10 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
     }
 
     //compute in j-direction
-    for (int i = 2; i <= ib; i++) {
-        for (int j = 2; j <= jd1; j++) {
+    for (int i = 2; i <= ib; i++)
+    {
+        for (int j = 2; j <= jd1; j++)
+        {
             jm1 = j - 1;
             jp1 = j + 1;
 
@@ -418,9 +430,10 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             // area_avg = 0.5*(area[i][jm1]+area[i][j]);
 
             //left and right states
-            for(int k=0; k<4; k++){
-                deltl[k] = 0.5*duj[k][i][jm1]*Minmod_Flux(duj[k][i][j], duj[k][i][jm1]);
-                deltr[k] = 0.5*duj[k][i][j]*Minmod_Flux(duj[k][i][jp1], duj[k][i][j]);
+            for (int k = 0; k < 4; k++)
+            {
+                deltl[k] = 0.5 * duj[k][i][jm1] * Minmod_Flux(duj[k][i][j], duj[k][i][jm1]);
+                deltr[k] = 0.5 * duj[k][i][j] * Minmod_Flux(duj[k][i][jp1], duj[k][i][j]);
 
                 /*deltl[k] = 0.5*duj[k][i][jm1]*VanAlbada_Limiter(duj[k][i][j], duj[k][i][jm1]);
                 deltr[k] = 0.5*duj[k][i][j]*VanAlbada_Limiter(duj[k][i][jp1], duj[k][i][j]);*/
@@ -430,17 +443,16 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             }
 
             rhol = dv[0][i][jm1] + deltl[0];
-            ul = dv[1][i][jm1]  + deltl[1];
-            vl = dv[2][i][jm1]  + deltl[2];
+            ul = dv[1][i][jm1] + deltl[1];
+            vl = dv[2][i][jm1] + deltl[2];
             pl = dv[3][i][jm1] + deltl[3];
             hl = ggm1 * pl / rhol + 0.5 * (ul * ul + vl * vl);
             El = pl / (gam1) + 0.5 * rhol * (ul * ul + vl * vl);
             al = sqrt(Gamma * pl / rhol);
 
-
             rhor = dv[0][i][j] - deltr[0];
-            ur = dv[1][i][j]  - deltr[1];
-            vr = dv[2][i][j]  - deltr[2];
+            ur = dv[1][i][j] - deltr[1];
+            vr = dv[2][i][j] - deltr[2];
             pr = dv[3][i][j] - deltr[3];
             hr = ggm1 * pr / rhor + 0.5 * (ur * ur + vr * vr);
             Er = pr / (gam1) + 0.5 * rhor * (ur * ur + vr * vr);
@@ -464,8 +476,8 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             u_roe = (ul + w * ur) / (1.0 + w);
             v_roe = (vl + w * vr) / (1.0 + w);
             //a_roe = sqrt((al * al * sqrt(rhol) + ar * ar * sqrt(rhor)) / (sqrt(rhol) + sqrt(rhor)));
-            p_avg = 0.5*(pl+pr);
-            a_roe = sqrt(Gamma*p_avg/rho_roe);
+            p_avg = 0.5 * (pl + pr);
+            a_roe = sqrt(Gamma * p_avg / rho_roe);
 
             Vn = u_roe * nx + v_roe * ny;
             Vt = -u_roe * ny + v_roe * nx;
@@ -476,7 +488,6 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             lambda2_a = 0.5 * (Vn - beta);
             lambda3 = 0.5 * fabs(Vn + beta);
             lambda3_a = 0.5 * (Vn + beta);
-
 
             r1_M = 0.0;
             r1_x = nx;
@@ -504,9 +515,10 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
             term2 = rho_roe * (u_roe * (ur - ul) + v_roe * (vr - vl));
             fd[3] = 0.5 * (lambda1 * (term1 + term2) + lambda2 * alpha1 * r1_E + alpha2 * lambda3 * r2_E);
 
-            //final dissipation terms     
-            for(int k=0; k<4; k++){
-                diss[k][i][j]   = diss[k][i][j] - fd[k] * ds;
+            //final dissipation terms
+            for (int k = 0; k < 4; k++)
+            {
+                diss[k][i][j] = diss[k][i][j] - fd[k] * ds;
                 diss[k][i][jm1] = diss[k][i][jm1] + fd[k] * ds;
             }
         }
@@ -530,7 +542,8 @@ void Diss_Roe2_TV_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, doubl
 /*******************************End of function for Naveen's roe scheme*********************************/
 
 void Diss_ZB2(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv, double ***&dv, double ***&si,
-                    double ***&sj, double ***&diss) {
+              double ***&sj, double ***&diss)
+{
 
     int im1, jm1, ip1, jp1;
     double nx, ny, dx, dy, ds, rhoinv, rhol, ul, vl, rhor, ur, vr, pl, pr, hl, hr, El, Er, gam1, ggm1;
@@ -550,8 +563,10 @@ void Diss_ZB2(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv,
     ggm1 = Gamma / gam1;
 
     //compute in i-direction
-    for (int j = 2; j <= jb; j++) {
-        for (int i = 2; i <= id1; i++) {
+    for (int j = 2; j <= jb; j++)
+    {
+        for (int i = 2; i <= id1; i++)
+        {
             im1 = i - 1;
             ip1 = i + 1;
 
@@ -680,8 +695,10 @@ void Diss_ZB2(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv,
     }
 
     //compute in j-direction
-    for (int i = 2; i <= ib; i++) {
-        for (int j = 2; j <= jd1; j++) {
+    for (int i = 2; i <= ib; i++)
+    {
+        for (int j = 2; j <= jd1; j++)
+        {
             jm1 = j - 1;
             jp1 = j + 1;
 
@@ -825,8 +842,9 @@ void Diss_ZB2(int ib, int id1, int id2, int jb, int jd1, int jd2, double ***&cv,
     delete[] deltr;
 }
 
-template<typename T>
-T MaxEigVal(T ur, T ul, T vr, T vl, T ar, T al, T nx, T ny) {
+template <typename T>
+T MaxEigVal(T ur, T ul, T vr, T vl, T ar, T al, T nx, T ny)
+{
     double L1r, L2r, L3r, L1l, L2l, L3l;
     L1r = fabs(ur * nx + vr * ny + ar);
     L1l = fabs(ul * nx + vl * ny + al);
@@ -838,5 +856,3 @@ T MaxEigVal(T ur, T ul, T vr, T vl, T ar, T al, T nx, T ny) {
     //return Max3(max(L1l,L1r), max(L2l,L2r), max(L3l,L3r));
     return Max2(Max3(L1r, L2r, L3r), Max3(L1l, L2l, L3l));
 }
-
-

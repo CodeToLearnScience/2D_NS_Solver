@@ -1,5 +1,5 @@
 #################################################################################
-#Author: Maruthi N. H., email: maruthinh@gmail.com					            # 
+#Author: Maruthi N. H., email: maruthinh@gmail.com				# 
 #input parameters for solving 2D Euler/NS equations on a structured grid        #
 #################################################################################
 #Test case name (this name will be used to write output files)

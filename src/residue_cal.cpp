@@ -49,7 +49,7 @@ void Residue_Cal(int iter, double dt, double t, double ***&cv, double ***&cvold,
             << "VARIABLES = Iter, dt, tot_t, Res_rho, iresmax, jresmax, Cl, Cd, Cm" << std::endl;
     }
 
-    Res<<iter<<"\t"<<dt<<"\t"<<t<<"\t"<<log(Resn1)<<"\t"<<iresmax<<"\t"<<jresmax<<"\t"<<cl<<"\t"<<cd<<"\t"<<cm<<std::endl;
+    Res<< iter << "\t" << dt << "\t" << t << "\t" << Resn1 << "\t" << iresmax << "\t" << jresmax << "\t" << cl << "\t" << cd  << "\t" << cm << std::endl;
 
     if(Resn1<1e-14){
         std::cout<<"Results are converged to 1e-14"<<std::endl;

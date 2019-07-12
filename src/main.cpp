@@ -63,8 +63,8 @@ int main(int argc, char** argv) {
     Boundary_Conditions(ib, id1, id2, jb, jd1, jd2, cv, dv, x, y, si, sj, pres_input_flag, bc_flag, bound_ind,
                         bound_cell, strt_bound_seg, end_bound_seg, pres_rhouvp) ;
 
-    int iter;
-    double time;
+    int iter=0;
+    double time=0.0;
 
     if(restart==0){
         iter=0;
@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
         iter = restart_iter;
         time = restart_t;
     }
+
     if(flow_type==0){
         while(iter<MaxIter){
             time=time+tstep[2][2];
@@ -83,7 +84,7 @@ int main(int argc, char** argv) {
                    gradfi,  gradfj, cvold, diss, rhs, epsij);
             Residue_Cal(iter, tstep[2][2], time, cv, cvold, dv, si, sj);
             if(iter%outp_freq==0){
-                // Write_Solution(id1, jd1, iter, time, x, y, cv);
+                Write_Solution(id1, jd1, iter, time, x, y, cv);
                 Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
                 //Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj); //fpr cylinder
                 Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
@@ -128,8 +129,8 @@ int main(int argc, char** argv) {
     else{
         std::cout<<"wrong input for the flow type: it should be 0 for steady and 1 for unsteady"<<std::endl;
     }
-
-    //Write_Solution(id1, jd1, iter, time, x, y, cv);
+    	
+    Write_Solution(id1, jd1, iter, time, x, y, cv);
     Write_SolutionVtk(id1, jd1, iter, time, x, y, cv);
     //Write_Surf_Solution(4, 1, 2, jd1, id1, jd1, iter, time, x, y, cv, dv, gradfi, gradfj);
     Write_Surf_Solution(bc_flag, bound_ind, bound_cell, strt_bound_seg, end_bound_seg, id1, jd1, iter, time, x, y, cv, dv,
