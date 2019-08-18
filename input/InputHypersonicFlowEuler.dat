@@ -3,33 +3,33 @@
 #input parameters for solving 2D Euler/NS equations on a structured grid        #
 #################################################################################
 #Test case name (this name will be used to write output files)
-HypersonicCylKFDS
+HyperSonCylZbMa20Ssprk3CflPt3
 #Equations to be solved (Euler=0, for NSE=1)
 0
 #Equations to be solved in dimensional or ND form (ND=0, and Dimensional=1)
-1	
+0	
 #Nature of the flow (steady=0, unsteady=1)
 0
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 2
 #Insvicid descretization method (see end of the file for description)
-30
+24
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
 1
 #viscous descritization method (Green Gauss=0, Least square=1, only GG available)
 0
 #cfl number
-0.1
+0.3
 #scaling factor (for appropreate Re)
 0.0381
 #restart solution (no=0, yes=1)
 0
 #mesh file
-HalfCylinderGrid11321.dat
+HalfCylinderGrid20320.dat
 #grid size (Nx*Ny)
-11 321
+20 320
 #Mesh topology file containing boundary informations
-GridTopHypersonicFlowEuler11321.dat
+GridTopHypersonicFlowEuler20320.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations

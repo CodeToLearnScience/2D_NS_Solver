@@ -60,21 +60,9 @@ void Init2D_RiemannEuler(int id2, int jd2, int interface_flag, int interface_ind
                           << std::endl;*/
             }
         }
-
-        for (int j = 0; j <= jd2; j++) {
-            for (int i = 0; i <= id2; i++) {
-                cv[0][i][j] = dv[0][i][j];
-                cv[1][i][j] = dv[0][i][j] * dv[1][i][j];
-                cv[2][i][j] = dv[0][i][j] * dv[2][i][j];
-                cv[3][i][j] = dv[3][i][j]/(Gamma-1.0)+0.5*dv[0][i][j]*(dv[1][i][j]*dv[1][i][j]+dv[2][i][j]*dv[2][i][j]);
-
-                /*std::cout<<"I.Cs: Con Var" << "\t" << i<<"\t"<<j<<"\t"<<cv[0][i][j] << "\t" << cv[1][i][j]<< "\t"
-                         << cv[2][i][j]<< "\t" << cv[3][i][j] << std::endl;*/
-            }
-        }
     }
     else if (interface_flag==1){
-        std::cout<<"diaphragm is located along x-direction"<<std::endl;
+        std::cout<<"diaphragm is located along y-direction"<<std::endl;
 
         for (int j = 0; j <= interface_ind; j++) {
             for (int i = 0; i <= id2; i++) {
@@ -91,7 +79,7 @@ void Init2D_RiemannEuler(int id2, int jd2, int interface_flag, int interface_ind
             }
         }
 
-        for (int j = interface_ind; j <= jd2; j++) {
+        for (int j = interface_ind+1; j <= jd2; j++) {
             for (int i = id2; i <= id2; i++) {
                 dv[0][i][j] = rho_r; //rho
                 dv[1][i][j] = u_r; //u
@@ -104,7 +92,12 @@ void Init2D_RiemannEuler(int id2, int jd2, int interface_flag, int interface_ind
                           << std::endl;*/
             }
         }
+    }
 
+    else{
+        std::cout<<"wrong ind for the interface location. It shouble be 0 for x and 1 for y"<<std::endl;
+        exit(0);
+    }
         for (int j = 0; j <= jd2; j++) {
             for (int i = 0; i <= id2; i++) {
                 cv[0][i][j] = dv[0][i][j];
@@ -116,10 +109,4 @@ void Init2D_RiemannEuler(int id2, int jd2, int interface_flag, int interface_ind
                          << cv[2][i][j]<< "\t" << cv[3][i][j] << std::endl;*/
             }
         }
-    }
-    else{
-        std::cout<<"wrong ind for the interface location. It shouble be 0 for x and 1 for y"<<std::endl;
-        exit(0);
-    }
-
 }

@@ -2,7 +2,7 @@
 CC          := g++
 
 #The Target Binary Program
-TARGET      := 2D_Euler_Unsteady
+TARGET      := 2D_NS_Solver
 
 #The Directories, Source, Includes, Objects, Binary and Resources
 SRCDIR      := src
