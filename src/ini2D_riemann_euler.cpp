@@ -80,7 +80,7 @@ void Init2D_RiemannEuler(int id2, int jd2, int interface_flag, int interface_ind
         }
 
         for (int j = interface_ind+1; j <= jd2; j++) {
-            for (int i = id2; i <= id2; i++) {
+            for (int i = 0; i <= id2; i++) {
                 dv[0][i][j] = rho_r; //rho
                 dv[1][i][j] = u_r; //u
                 dv[2][i][j] = v_r; //v

@@ -9,7 +9,7 @@ RiemannSlipFlowEulerNKFDS2
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 0
 #Insvicid descretization method (see end of the file for description)
-5
+7
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
 0
 #cfl number
@@ -31,7 +31,7 @@ Something.dat
 #Maximum number of iterations
 300000
 #Maximum time at which programme will be stopped for unsteady problems
-0.25
+25.0
 ######################Flow parameters################################
 #Dir along which diaphragm is placed (0 for x-dir and 1 for y-dir)
 1

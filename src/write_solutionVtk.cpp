@@ -52,10 +52,10 @@ void Write_SolutionVtk(int id1, int jd1, int iter, double t, double **&x, double
         for (int i = 2; i <= id1; i++)
         {
             rho = 0.25 * (dv[0][i][j] + dv[0][i - 1][j] + dv[0][i - 1][j - 1] + dv[0][i][j - 1]);
-            u = 0.25 * (dv[1][i][j] + dv[1][i - 1][j] + dv[1][i - 1][j - 1] + dv[1][i][j - 1]);
-            v = 0.25 * (dv[2][i][j] + dv[2][i - 1][j] + dv[2][i - 1][j - 1] + dv[2][i][j - 1]);
-            p = 0.25 * (dv[3][i][j] + dv[3][i - 1][j] + dv[3][i - 1][j - 1] + dv[3][i][j - 1]);
-            T = 0.25 * (dv[4][i][j] + dv[4][i - 1][j] + dv[4][i - 1][j - 1] + dv[4][i][j - 1]);
+            u   = 0.25 * (dv[1][i][j] + dv[1][i - 1][j] + dv[1][i - 1][j - 1] + dv[1][i][j - 1]);
+            v   = 0.25 * (dv[2][i][j] + dv[2][i - 1][j] + dv[2][i - 1][j - 1] + dv[2][i][j - 1]);
+            p   = 0.25 * (dv[3][i][j] + dv[3][i - 1][j] + dv[3][i - 1][j - 1] + dv[3][i][j - 1]);
+            T   = 0.25 * (dv[4][i][j] + dv[4][i - 1][j] + dv[4][i - 1][j - 1] + dv[4][i][j - 1]);
             mav = 0.25 * (dv[6][i][j] + dv[6][i - 1][j] + dv[6][i - 1][j - 1] + dv[6][i][j - 1]);
             kav = 0.25 * (dv[7][i][j] + dv[7][i - 1][j] + dv[7][i - 1][j - 1] + dv[7][i][j - 1]);
 
@@ -75,10 +75,10 @@ void Write_SolutionVtk(int id1, int jd1, int iter, double t, double **&x, double
         for (int i = 2; i <= id1; i++)
         {
             rho = 0.25 * (dv[0][i][j] + dv[0][i - 1][j] + dv[0][i - 1][j - 1] + dv[0][i][j - 1]);
-            u = 0.25 * (dv[1][i][j] + dv[1][i - 1][j] + dv[1][i - 1][j - 1] + dv[1][i][j - 1]);
-            v = 0.25 * (dv[2][i][j] + dv[2][i - 1][j] + dv[2][i - 1][j - 1] + dv[2][i][j - 1]);
-            p = 0.25 * (dv[3][i][j] + dv[3][i - 1][j] + dv[3][i - 1][j - 1] + dv[3][i][j - 1]);
-            T = 0.25 * (dv[4][i][j] + dv[4][i - 1][j] + dv[4][i - 1][j - 1] + dv[4][i][j - 1]);
+            u   = 0.25 * (dv[1][i][j] + dv[1][i - 1][j] + dv[1][i - 1][j - 1] + dv[1][i][j - 1]);
+            v   = 0.25 * (dv[2][i][j] + dv[2][i - 1][j] + dv[2][i - 1][j - 1] + dv[2][i][j - 1]);
+            p   = 0.25 * (dv[3][i][j] + dv[3][i - 1][j] + dv[3][i - 1][j - 1] + dv[3][i][j - 1]);
+            T   = 0.25 * (dv[4][i][j] + dv[4][i - 1][j] + dv[4][i - 1][j - 1] + dv[4][i][j - 1]);
             mav = 0.25 * (dv[6][i][j] + dv[6][i - 1][j] + dv[6][i - 1][j - 1] + dv[6][i][j - 1]);
             kav = 0.25 * (dv[7][i][j] + dv[7][i - 1][j] + dv[7][i - 1][j - 1] + dv[7][i][j - 1]);
 
@@ -96,10 +96,10 @@ void Write_SolutionVtk(int id1, int jd1, int iter, double t, double **&x, double
         for (int i = 2; i <= id1; i++)
         {
             rho = 0.25 * (dv[0][i][j] + dv[0][i - 1][j] + dv[0][i - 1][j - 1] + dv[0][i][j - 1]);
-            u = 0.25 * (dv[1][i][j] + dv[1][i - 1][j] + dv[1][i - 1][j - 1] + dv[1][i][j - 1]);
-            v = 0.25 * (dv[2][i][j] + dv[2][i - 1][j] + dv[2][i - 1][j - 1] + dv[2][i][j - 1]);
-            p = 0.25 * (dv[3][i][j] + dv[3][i - 1][j] + dv[3][i - 1][j - 1] + dv[3][i][j - 1]);
-            T = 0.25 * (dv[4][i][j] + dv[4][i - 1][j] + dv[4][i - 1][j - 1] + dv[4][i][j - 1]);
+            u   = 0.25 * (dv[1][i][j] + dv[1][i - 1][j] + dv[1][i - 1][j - 1] + dv[1][i][j - 1]);
+            v   = 0.25 * (dv[2][i][j] + dv[2][i - 1][j] + dv[2][i - 1][j - 1] + dv[2][i][j - 1]);
+            p   = 0.25 * (dv[3][i][j] + dv[3][i - 1][j] + dv[3][i - 1][j - 1] + dv[3][i][j - 1]);
+            T   = 0.25 * (dv[4][i][j] + dv[4][i - 1][j] + dv[4][i - 1][j - 1] + dv[4][i][j - 1]);
             mav = 0.25 * (dv[6][i][j] + dv[6][i - 1][j] + dv[6][i - 1][j - 1] + dv[6][i][j - 1]);
             kav = 0.25 * (dv[7][i][j] + dv[7][i - 1][j] + dv[7][i - 1][j - 1] + dv[7][i][j - 1]);
 

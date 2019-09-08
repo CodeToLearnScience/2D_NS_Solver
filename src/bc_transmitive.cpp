@@ -79,7 +79,7 @@ void Bc_Transmitive(int bind, int bnode, int sbind, int ebind, double ***&cv, do
   //          std::cout<<"values of cv[dum1] and cv[dum2]="<<cv[0][dum1][j]<<"\t"<<cv[0][dum2][j]<<std::endl;
             if ((dv[0][dum1][j] != dv[0][dum1][j]) or (dv[1][dum1][j] != dv[1][dum1][j]) or
                 (dv[2][dum1][j] != dv[2][dum1][j]) or (dv[3][dum1][j] != dv[3][dum1][j])) {
-                std::cout << "The values of conserved var in trans b. c. at i, j=" << dum1 << "\t" << j << "\t"
+                std::cout << "The values of conserved var in transmissive b. c. at i, j=" << dum1 << "\t" << j << "\t"
                           << dv[0][dum1][j]
                           << "\t" << dv[1][dum1][j] << "\t" << dv[2][dum1][j] << "\t" << dv[3][dum1][j]
                           << std::endl;

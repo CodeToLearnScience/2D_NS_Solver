@@ -2,7 +2,7 @@
 CC          := g++
 
 #The Target Binary Program
-TARGET      := 2D_NS_Solver
+TARGET      := 2D_NS_Riemann
 
 #The Directories, Source, Includes, Objects, Binary and Resources
 SRCDIR      := src
@@ -16,7 +16,7 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 #CFLAGS      := -fopenmp -Wall -O3 -g
-CFLAGS      := -Wall -O3 -g
+CFLAGS      := -Wall -g #-O3 -g
 #LIB         := -fopenmp -lm -larmadillo
 INC         := -I$(INCDIR) -I/usr/local/include
 INCDEP      := -I$(INCDIR)

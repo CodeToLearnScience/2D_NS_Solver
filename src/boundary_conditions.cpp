@@ -25,7 +25,7 @@ void Boundary_Conditions(int ib, int id1, int id2, int jb, int jd1, int jd2, dou
             Bc_Prescribed_Inflow(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], rhoinf, uinf,
                                  vinf, pinf, cv, dv);
         }
-        if(pres_input_flag[bc]==1 and bc_flag[bc]==10){ //prescribed inflow b.c with values other than free stream
+        else if(pres_input_flag[bc]==1 and bc_flag[bc]==10){ //prescribed inflow b.c with values other than free stream
             no_of_pres_count++;
             //::cout<<"I am applying b.c 10 with 1"<<std::endl;
             Bc_Prescribed_Inflow(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc],
@@ -37,8 +37,8 @@ void Boundary_Conditions(int ib, int id1, int id2, int jb, int jd1, int jd2, dou
             Bc_Transmitive(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
         }
         else if(bc_flag[bc]==30){ //Euler wall boundary condition
-            BC_wall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
-            //BC_Eulerwall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
+            // BC_wall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
+            BC_Eulerwall(bound_ind[bc], bound_cell[bc], strt_bound_seg[bc], end_bound_seg[bc], cv, dv);
         }
         else if(bc_flag[bc]==40){ //navier-stokes wall boundary condition
             //std::cout<<"I am applying b.c 40"<<std::endl;

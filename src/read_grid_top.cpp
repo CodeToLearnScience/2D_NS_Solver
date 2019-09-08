@@ -31,16 +31,19 @@ void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&b
     std::cout<<TitleLine<<std::endl;
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
+    
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
     infile>>no_boun_seg;
     infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
     infile>>no_bounseg_prescinp;
     infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cout<<"no of boun seg are="<<no_boun_seg<<"\t"<<"no of bound seg with prescr input="<<no_bounseg_prescinp
              <<std::endl;
+    
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
 
@@ -64,6 +67,7 @@ void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&b
         }
         else if(bc_flag[j]==50){
             infile>>Twall_iso;
+            std::cout<<"Twall_iso="<<Twall_iso<<std::endl;
         }
     }
     for (int j = 0; j<no_boun_seg; j++) {
@@ -78,7 +82,7 @@ void ReadGridTopology(std::string &grid_top_file, int *&pres_input_flag, int *&b
         std::cout<<std::endl;
     }
 
-    std::cout<<"Twall_iso="<<Twall_iso<<std::endl;
+    
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
 
