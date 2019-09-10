@@ -130,6 +130,13 @@ void ReadSolverInput(const std::string& SolverInputFile){
     infile>>MaxIter;
     infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cout<<"Maximum number of iterations are="<<MaxIter<<std::endl;
+
+    getline(infile, TitleLine);
+    std::cout<<TitleLine<<std::endl;
+    infile>>tot_time;
+    infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout<<"Maximum time at which unsteady computations will be stopped="<<MaxIter<<std::endl;
+
 /******************Reading flow parameters*******************************/
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;
