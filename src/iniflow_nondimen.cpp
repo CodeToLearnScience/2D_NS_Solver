@@ -67,9 +67,10 @@ void InitFlowNonDimensional(int id2, int jd2, double Re_inf, double Machinf, dou
             dv[6][i][j] = ((1.0+C1/C0)/(C1/C0+dv[4][i][j]))*pow(dv[4][i][j],1.5)/Re_inf; //Mu
             dv[7][i][j] = dv[6][i][j]/(GammaMinus1*Machinf*Machinf*Pr); //K
 
-            /*std::cout <<"I.Cs: Dep Var"<<"\t"<<i<<"\t"<<j<<"\t"<<dv[0][i][j]<<"\t"<<dv[1][i][j]<<"\t"<< dv[2][i][j]
-                      <<"\t"<<dv[3][i][j]<<"\t"<<dv[4][i][j]<<"\t"<<dv[5][i][j]<<"\t"<<dv[6][i][j]<<"\t"<<dv[7][i][j]
-                      << std::endl;*/
+            /*std::cout <<"I.Cs: Dep Var"<<"\t"<<i<<"\t"<<j<<"\t"<<"rho="<<dv[0][i][j]<<"\t"<<"u="<<dv[1][i][j]<<"\t"<<"v="<< dv[2][i][j]
+                      <<"\t"<<"p="<<dv[3][i][j]<<"\t"<<"T="<<dv[4][i][j]<<"\t"<<"a="<<dv[5][i][j]<<"\t"<<"Mu="<<dv[6][i][j]<<"\t"<<"k="<<dv[7][i][j]
+                      << std::endl;
+                    //   exit(0);*/
         }
     }
 

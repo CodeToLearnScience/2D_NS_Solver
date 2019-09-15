@@ -43,7 +43,7 @@ void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1
             std::cout<<"i="<< i<<"\t"<<"j="<<j<<"\t"<< x[i][j] << "\t" << y[i][j] << std::endl;
         }
     //}
-
+    
     //grid points for dummy cells
 
     for (int i = 2; i <= id1; i++) {

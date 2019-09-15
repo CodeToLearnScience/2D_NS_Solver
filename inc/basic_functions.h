@@ -263,8 +263,8 @@ T Minmod_Flux(T del_p, T del_m) {
 
     }*/
 
-    return std::max(0.0, std::min(1.0, r));
-    //return r;
+    //return std::max(0.0, std::min(1.0, r));
+    return r;
 }
 
 template<typename T>

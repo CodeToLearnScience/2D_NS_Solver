@@ -13,13 +13,13 @@ SWBLI_roeZB
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 0
 #Insvicid descretization method (see end of the file for description)
-24
+30
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
 1
 #viscous descritization method (Green Gauss=0, Least square=1, only GG available)
 0
 #cfl number
-0.4
+0.1
 #scaling factor (for appropreate Re)
 1
 #restart solution (no=0, yes=1)
@@ -38,6 +38,8 @@ SWBLI_ECCS_IsoCont105_65Iter44000.dat
 1000
 #Maximum number of iterations
 250000
+#Maximum time at which computations will be stopped (for unsteady)
+4.0
 ######################Flow parameters/Dimensional################################
 #Reynolds number
 100000
