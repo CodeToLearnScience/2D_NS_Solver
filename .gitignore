@@ -16,3 +16,6 @@ obj/
 /.dropbox
 src/.vscode/
 .vscode
+grid/*.vtk
+grid/*.dat
+a.out

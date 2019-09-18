@@ -52,11 +52,11 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
 
             for (int k = 0; k < 4; k++)
             {
-                deltl[k] = 0.5 * dui[k][im1][j] * Minmod_Flux(dui[k][i][j], dui[k][im1][j]);
-                deltr[k] = 0.5 * dui[k][i][j] * Minmod_Flux(dui[k][ip1][j], dui[k][i][j]);
+                // deltl[k] = 0.5 * dui[k][im1][j] * Minmod_Flux(dui[k][i][j], dui[k][im1][j]);
+                // deltr[k] = 0.5 * dui[k][i][j] * Minmod_Flux(dui[k][ip1][j], dui[k][i][j]);
 
-                /*deltl[k] = 0.5*dui[k][im1][j]*VanAlbada_Limiter(dui[k][i][j], dui[k][im1][j]);
-                deltr[k] = 0.5*dui[k][i][j]*VanAlbada_Limiter(dui[k][ip1][j], dui[k][i][j]);*/
+                deltl[k] = 0.5*dui[k][im1][j]*VanAlbada_Limiter(dui[k][i][j], dui[k][im1][j]);
+                deltr[k] = 0.5*dui[k][i][j]*VanAlbada_Limiter(dui[k][ip1][j], dui[k][i][j]);
 
                 /*deltl[k] = 0.5 * Venki_Limiter(dui[k][i][j], dui[k][im1][j], dx);
                 deltr[k] = 0.5 * Venki_Limiter(dui[k][ip1][j], dui[k][i][j], dx);*/
@@ -167,11 +167,11 @@ void Diss_Roe2_Prim(int ib, int id1, int id2, int jb, int jd1, int jd2, double *
 
             for (int k = 0; k < 4; k++)
             {
-                deltl[k] = 0.5 * duj[k][i][jm1] * Minmod_Flux(duj[k][i][j], duj[k][i][jm1]);
-                deltr[k] = 0.5 * duj[k][i][j] * Minmod_Flux(duj[k][i][jp1], duj[k][i][j]);
+                // deltl[k] = 0.5 * duj[k][i][jm1] * Minmod_Flux(duj[k][i][j], duj[k][i][jm1]);
+                // deltr[k] = 0.5 * duj[k][i][j] * Minmod_Flux(duj[k][i][jp1], duj[k][i][j]);
 
-                /*deltl[k] = 0.5*duj[k][i][jm1]*VanAlbada_Limiter(duj[k][i][j], duj[k][i][jm1]);
-                deltr[k] = 0.5*duj[k][i][j]*VanAlbada_Limiter(duj[k][i][jp1], duj[k][i][j]);*/
+                deltl[k] = 0.5*duj[k][i][jm1]*VanAlbada_Limiter(duj[k][i][j], duj[k][i][jm1]);
+                deltr[k] = 0.5*duj[k][i][j]*VanAlbada_Limiter(duj[k][i][jp1], duj[k][i][j]);
 
                 /*deltl[k] = 0.5 * Venki_Limiter(duj[k][i][j], duj[k][i][jm1], dy);
                 deltr[k] = 0.5 * Venki_Limiter(duj[k][i][jp1], duj[k][i][j], dy);*/

@@ -257,14 +257,14 @@ T Minmod_Flux(T del_p, T del_m) {
 
     r = del_p / (del_m + 1e-16);
 
-    /*if (fabs(del_p)<eps) {
+    if (fabs(del_p)<eps) {
 
         r = Sign(del_p)*del_m/eps;
 
-    }*/
+    }
 
-    //return std::max(0.0, std::min(1.0, r));
-    return r;
+    return std::max(0.0, std::min(1.0, r));
+    //return r;
 }
 
 template<typename T>

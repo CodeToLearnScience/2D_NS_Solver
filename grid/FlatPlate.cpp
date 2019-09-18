@@ -236,8 +236,8 @@ int main(){
     // yll = 0.0;
     // yul = 2.0;
 
-    int Nx1 = 40; Ny = 80;
-    int Nx2 = 20;
+    int Nx1 = 20; Ny = 80;
+    int Nx2 = 60;
 
     xStretch1 = new double [Nx1+1];
     xStretch2 = new double [Nx2+1];
@@ -245,15 +245,15 @@ int main(){
 
     Allocate_2D(x, Nx1+Nx2+1, Ny+1); Allocate_2D(y, Nx1+Nx2+1, Ny+1);
     std::cout<<"---------------first stretch in x---------------"<<std::endl;
-    linePartition(xStretch1, double(0.0), double(1.0), Nx1);
-    strechedGridUsingTanh(xStretch1, 1.0, 0.0, Nx1, 1.1, end_of_line);
+    linePartition(xStretch1, double(0.0), double(0.5), Nx1);
+    strechedGridUsingTanh(xStretch1, 0.5, 0.0, Nx1, 1.1, end_of_line);
 
-    linePartition(yStretch, double (0.0), double(2.0), Ny);
-    strechedGridUsingTanh(yStretch, 2.0, 1.0, Ny, 1.5, str_of_line);
+    linePartition(yStretch, double (0.0), double(1.0), Ny);
+    strechedGridUsingTanh(yStretch, 1.0, 1.0, Ny, 2.5, str_of_line);
 
     std::cout<<"---------------second stretch in x---------------"<<std::endl;
-        linePartition(xStretch2, double(0.0), double(0.5), Nx2);
-        strechedGridUsingTanh(xStretch2, 0.5, 0.0, Nx2, 1.1, str_of_line);
+        linePartition(xStretch2, double(0.0), double(1.0), Nx2);
+        strechedGridUsingTanh(xStretch2, 1.0, 0.0, Nx2, 1.1, str_of_line);
 
     for (int i=0;i<=Nx1;i++){
 	    for(int j=0;j<=Ny;j++){
@@ -265,7 +265,7 @@ int main(){
 
 
     for (int i=0;i<=Nx2;i++){
-        xStretch2[i] = xStretch2[i] + 1;
+        xStretch2[i] = xStretch2[i] + 0.5;
         // std::cout<<"xStretch2 val="<<xStretch2[i]<<std::endl;
     }
     for (int i=Nx1+1;i<=(Nx1+Nx2);i++){

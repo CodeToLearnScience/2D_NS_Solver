@@ -6,6 +6,9 @@
 void InitFlowDimensional(int id2, int jd2, double Re_inf, double Machinf, double Lref,  double alpha, double pinf,
                          double ***&cv, double ***&dv) {
 
+    const double s1 = 110.0, s2 = 288.16;
+    double s12;
+    s12 = 1.0 + s1/s2;
     Cp      = Rgas*GamaByGamaMin1;
     rhoinf  = pinf/(Rgas*tinf);
     qinf    = Machinf*sqrt((Gamma-1.0)*Cp*tinf);
@@ -44,12 +47,15 @@ void InitFlowDimensional(int id2, int jd2, double Re_inf, double Machinf, double
             dv[3][i][j] = pinf; //p
             dv[4][i][j] = tinf; //T
             dv[5][i][j] = sqrt(Gamma*pinf/rhoinf); //a
-            dv[6][i][j] = ((C0+C1)/(C1+dv[4][i][j]))*pow((dv[4][i][j]/C0),1.5)*refvisc; //Mu
+            // dv[6][i][j] = ((C0+C1)/(C1+dv[4][i][j]))*pow((dv[4][i][j]/C0),1.5)*refvisc; //Mu
+             dv[6][i][j] = (sqrt(dv[4][i][j]/s2)*s12/(1.0+s1/dv[4][i][j]))*refvisc; //Mu //both are same
+
             dv[7][i][j] = dv[6][i][j]*Cp/Pr; //K
 
-            /*std::cout <<"I.Cs: Dep Var"<<"\t"<<i<<"\t"<<j<<"\t"<<dv[0][i][j]<<"\t"<<dv[1][i][j]<<"\t"<< dv[2][i][j]
-                      <<"\t"<<dv[3][i][j]<<"\t"<<dv[4][i][j]<<"\t"<<dv[5][i][j]<<"\t"<<dv[6][i][j]<<"\t"<<dv[7][i][j]
-                      << std::endl;*/
+            /*std::cout <<"I.Cs: Dep Var"<<"\t"<<i<<"\t"<<j<<"\t"<<"rho="<<dv[0][i][j]<<"\t"<<"u="<<dv[1][i][j]<<"\t"<<"v="<< dv[2][i][j]
+                      <<"\t"<<"p="<<dv[3][i][j]<<"\t"<<"T="<<dv[4][i][j]<<"\t"<<"a="<<dv[5][i][j]<<"\t"<<"Mu="<<dv[6][i][j]<<"\t"<<"k="<<dv[7][i][j]
+                      << "\t"<<"Cp="<<Cp<<"\t"<<"Rgas="<<Rgas<<std::endl;
+                      exit(0);*/
         }
     }
 
