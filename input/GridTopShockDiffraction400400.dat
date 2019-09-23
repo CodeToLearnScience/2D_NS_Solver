@@ -8,11 +8,11 @@
 #number of boundary segments with prescribed input
 1
 #########################Boundary condition information starts####################
-1	10	4	1	2	401
+1	10	4	1	252	401
 7.041132896	4.0779	0.0	30.05945
-0	20	1	1	2	401
+0	30	1	251	2   21
+0	30	4	21	2   251
+0	20	1	1	22	401
 0	20	2	402	2	401
 0	20	3	402	2	401
-0	30	4	22	2   252
-0	30	1	253	2   22
 #########################End of Boundary condition information####################

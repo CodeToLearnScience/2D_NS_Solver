@@ -3,35 +3,35 @@
 #input parameters for solving 2D Euler Riemann Problem                          #
 #################################################################################
 #Test case name (this name will be used to write output files)
-RiemannSDEulerNKFDS2
+ShockDiffKfdsMaxLambda_2nd
 #Nature of the flow (steady=0, unsteady=1)
 1
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
 0
 #Insvicid descretization method (see end of the file for description)
-0
+30
 #Spatial accuracy of inviscid scheme (first order=0, second order=1)
-0
+1
 #cfl number
-0.1
+0.15
 #restart solution (no=0, yes=1)
 0
 #mesh file
-GridShockDiffraction100100.dat
+GridShockDiffraction400400.dat
 #grid size (Nx*Ny)
-100 100
+400 400
 #Mesh topology file containing boundary informations
-GridTopShockDiffraction100100.dat
+GridTopShockDiffraction400400.dat
 #restart file 
 RiemannWedgeEulerNKFDS2_IsoCont400_400Iter5000.dat
 #display frequecy. Progress will be written for chosen iterations
-50
-#Output frequency. Output will be written for the chosen freq
 100
+#Output frequency. Output will be written for the chosen freq
+500
 #Maximum number of iterations
 300000
 #Maximum time at which programme will be stopped for unsteady problems
-0.25
+0.1561
 ######################Flow parameters################################
 #Dir along which diaphragm is placed (0 for x-dir and 1 for y-dir)
 0

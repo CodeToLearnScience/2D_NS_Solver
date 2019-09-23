@@ -3,7 +3,7 @@
 #input parameters for solving 2D Euler Riemann Problem                          #
 #################################################################################
 #Test case name (this name will be used to write output files)
-RiemannSlipFlowEulerNKFDS2
+SlipFlowKfdsMaxLambda_1st
 #Nature of the flow (steady=0, unsteady=1)
 1
 #Time stepping scheme to be used (explicit=0, ssprk2=1, ssprk3=2)
@@ -25,9 +25,9 @@ GridTopSlipFlow2020.dat
 #restart file 
 Something.dat
 #display frequecy. Progress will be written for chosen iterations
-100
+1000
 #Output frequency. Output will be written for the chosen freq
-500
+5000
 #Maximum number of iterations
 300000
 #Maximum time at which programme will be stopped for unsteady problems
