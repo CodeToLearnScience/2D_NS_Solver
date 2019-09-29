@@ -328,8 +328,8 @@ T Mahalanobis(T rhoL, T rhoR, T unL, T unR, T pL, T pR, T maxa, T emax) {
     SR = cv*log(pR/(rhoR*(Gamma-1))) - RR*log(rhoR);
     delS = SL - SR;
     // if (fabs(delS/emax)<1) {delS = 0;}
-    ric = (0.5*(fabs(unL)+fabs(unR))); // maxa;   //
-        // ric =  maxa;   //
+    //ric = (0.5*(fabs(unL)+fabs(unR))); // maxa;   //
+         ric =  maxa;   //
 
     /* if ric = maxa it is LLF. If ric = (0.5*(fabs(unL)+fabs(unR))) then it is RICCA type */
     if ((DD >0) and (fabs(delS)<=1*emax)) {mnb = 1.0*(-ric);}
