@@ -1,0 +1,271 @@
+# Refactoring Plan: 2D NS Solver → Modern C++ / MPI / CMake
+
+Status: **living document**. Update phase tables as work lands.
+
+---
+
+## 1. Goals
+
+1. Rewrite the solver core in modern C++ (C++20, C++23 where toolchain allows).
+2. Replace the positional `.cfg` + `GridTop*.dat` inputs with a validated **TOML** config
+   (JSON optional backend).
+3. **MPI-parallelize** via domain decomposition of the structured grid.
+4. Migrate the build from the hand-rolled Makefile to **CMake** (presets, FetchContent,
+   warnings-as-errors, sanitizers, CI-ready).
+5. Establish **Google Test** based unit + verification + regression testing.
+
+## 2. Current state (baseline audit)
+
+~14,400 LOC, 47 `.cpp` files in `src/`, headers in `inc/`, built with `g++ -Wall -O3` Makefile.
+Flow: `main.cpp` → positional input parse → read grid + separate topology file → allocate ~30
+global arrays → march `Solver()` (SSPRK1–3, local Δt) calling scheme-specific `Diss_*`
+inviscid-flux routines, Green-Gauss viscous fluxes for NS, segment-table boundary conditions,
+Tecplot/VTK output, restart support.
+
+Schemes present: LLF, Roe (1st/2nd order), MOVERS variants (H1/H2/LE1/LE2/NWSC), KFDS,
+NKFDS-MOVERS, ECCS. BC flags: 10 prescribed inflow, 20 transmissive, 30 Euler wall,
+40 NS adiabatic wall, 50 NS isothermal wall, 60 far-field, 70 symmetry, 80 cut wall.
+
+### 2.1 Structural problems
+
+| Problem | Where |
+|---|---|
+| ~60 mutable globals threaded through every function | `inc/global_declarations.h`, `src/initialize_variables.cpp` |
+| Raw `double***` jagged arrays; manual new/delete; leaks | everywhere; e.g. `main.cpp` frees one pointer array via comma operator |
+| Variable-major layout `cv[var][i][j]` with j-outer/i-inner loops → strided access | all hot kernels |
+| Cryptic index zoo (`id1/id2/jd1/jd2/imax`) for ghost cells | every file |
+| Scheme/BC dispatch by bare int codes in if-chains | `solver.cpp`, `boundary_conditions.cpp` |
+| Hard-coded relative paths `../input/`, `../output/` | `read_grid.cpp`, `read_grid_top.cpp`, `main.cpp` |
+| Fragile positional parsing by repeated `getline`+`>>` | `read_solver_input.cpp`, `read_grid_top.cpp` |
+
+### 2.2 Bugs found and fixed (2026-08, pre-baseline)
+
+These were corrected **before** capturing regression baselines so that goldens reflect fixed
+behavior. Any legacy results produced earlier are not comparable byte-for-byte.
+
+| Bug | Location | Fix |
+|---|---|---|
+| Face-normal y-component computed as `sx/ds` instead of `sy/ds` → wrong normal velocity in spectral radii → wrong Δt | `src/time_step.cpp`, both `Time_Step_Euler` and `Time_Step_NS` | `ny = sy / ds;` (4 sites). Verified against metric convention in `grid_computations.cpp`: `si[0]=-Δy` (x-comp), `si[1]=+Δx` (y-comp) |
+| `MinModLim` missing return path when `|Ur|==|Ul|` (UB) | `inc/basic_functions.h` | Rewrote as guard-on-opposite-signs then smaller-magnitude selection |
+| No-op string comparison `time_step == "global";` | `src/time_step.cpp` (both functions) | Removed |
+| Uninitialized `cs` read in error-diagnostic print | `src/time_step.cpp` | Initialized to 0.0 |
+| `while(!infile.eof())` wrapping entire grid read loop → re-read pass zeroes first grid point when file ends with newline | `src/read_grid.cpp` | Single guarded pass with failure diagnostics |
+| Scheme banner printed from `time_accuracy` instead of `inviscid_scheme` | `src/read_solver_input.cpp` | Corrected variable |
+| `Log_Mean` else-branch inverted `f/ln(ξ)` and lost the sign → **negative** logarithmic mean for density jumps beyond ~±10% (e.g. −1.56 instead of +1.4427 for states (2,1)) | `inc/basic_functions.h` | Broken branch replaced with exact `(al−ar)/ln(al/ar)`; small-jump series branch untouched. NOTE: currently zero callers in `src/` — becomes live when Roe/KFDS paths are ported |
+| `get_str_between_two_str` searched the closing delimiter from string start, finding the opening one again → returned everything *after* delimiter #1 instead of the text *between* | `inc/basic_functions.h` | Closing search starts past the opening delimiter; missing-closer falls back to end-of-string. Existing restart-file callers unaffected (they parse leading numerics) |
+
+Verification findings from baseline capture:
+
+- The committed 80×160 hypersonic half-cylinder case runs cleanly post-fix
+  (200-iteration smoke: residuals finite, monotonically decreasing).
+- The 45×45 half-cylinder grid is **not viable at Mach 20** with these input parameters:
+  pristine pre-fix code survives only 3 iterations (masked by the wrong Δt), fixed code hits
+  the negative-pressure guard at iteration 1. Treated as a case-definition issue, not a code
+  regression; excluded from baselines.
+
+### 2.3 Legacy input-file inconsistencies (found during Phase 2)
+
+The positional reader in `read_solver_input.cpp` silently mis-parses files whose field layout
+drifted from what it expects (`>> int` on `2.15` yields `2`; missing blocks shift every later
+field). Four committed inputs are affected and are **not** convertible:
+
+| File | Problem |
+|---|---|
+| `InputHypersonicFlowNS.dat` | `space_accuracy = 2`, which the legacy solver itself rejects at runtime |
+| `InputSWBLI_NS_Dimen.dat` | extra/misordered numeric fields; reader would consume garbage values |
+| `InputSWBLI_NS_ND1.dat` | old format predating the `disp_freq`/`outp_freq`/`tot_time` blocks (commit `91da8d7`) |
+| `InputWedgeReflection.dat` | same old format; e.g. `outp_freq` would read `257354` |
+
+If any of these cases is still needed, recreate its input from a working template — the new
+TOML loader would have rejected them loudly instead of running with corrupted settings.
+
+Not-yet-reviewed: numerics inside `diss_roe*.cpp`, `diss_movers*`, `ECCS.cpp`, `bc_farfiled.cpp`
+(≈5,500 LOC). Deep review is deferred to Phase 5 where each scheme is ported against golden
+outputs rather than eyeballed.
+
+## 3. Target architecture
+
+```
+2D_NS_Solver/
+├── CMakeLists.txt              # root; ns_core lib + apps + tests
+├── CMakePresets.json           # gcc/clang × debug/release/asan
+├── REFACTORING_PLAN.md         # this document
+├── configs/                    # migrated TOML cases (+ tools/cfg2toml output)
+├── src/
+│   ├── main.cpp                # thin driver: args → config → run
+│   ├── config/                 # TOML loader → typed Config structs + validation
+│   ├── mesh/                   # StructuredMesh: nodes, metrics (face vectors, areas)
+│   ├── fields/                 # Field<T>: contiguous vector + ghost-aware View2D
+│   ├── physics/                # IdealGas EOS, prim↔cons, Sutherland viscosity, gradients
+│   ├── numerics/               # inviscid fluxes (LLF/Roe/MOVERS/KFDS/ECCS), limiters, MUSCL
+│   ├── bc/                     # enum class BcType + per-type appliers on segments
+│   ├── time/                   # Steppers: ForwardEuler, SSPRK2, SSPRK3
+│   ├── parallel/               # decomposition, halo exchange, reductions (MPI)
+│   ├── io/                     # grid readers, restart (binary), VTK/XDMF, surface writers
+│   └── solver/                 # driver loop orchestration
+├── tests/                      # Google Test unit + verification + MPI regression
+├── scripts/                    # capture_regression.sh, compare_regression.sh
+├── tools/cfg2toml/             # legacy config migration tool
+└── legacy/                     # (eventually) frozen pre-refactor sources, kept until parity
+```
+
+### 3.1 Key design decisions
+
+- **No globals**: a `SimulationContext` owns config/mesh/fields; kernels take views.
+- **Fields**: contiguous `std::vector<T>` with explicit ghost layers (`ng`, default 3),
+  exposed through `ns::View2D<T>` — a minimal 2-D view whose `[i, j]` subscript and
+  `extent()` API deliberately mirror `std::mdspan`. Deviation from the original plan:
+  libstdc++ (checked on GCC 15) still lacks `<mdspan>`, so the real type is a drop-in
+  swap once available. Bounds-checked `at()` accessors complement assert-guarded
+  `operator()` (zero cost in release hot loops). `fill_ghosts_copy()` reproduces the
+  legacy ghost convention exactly (each ring copies the nearest interior layer).
+- **Concepts**: `template<Equation E, Flux F>` constraints; runtime selection via enum +
+  factory at step granularity (dispatch cost negligible vs stencil sweeps).
+- **BC framework**: `enum class BcType`, `BoundarySegment {type, edge, start, end, state}`;
+  topology moves *into* the TOML file.
+- **Fallible ops**: `std::expected<T, Error>` for parse/load paths — no `exit()` mid-parse.
+- **C++23 features used**: `std::expected`, `std::format`, multidim-subscript views,
+  deducing-this where helpful. C++20 baseline otherwise (`ranges`, concepts, spaceships).
+
+## 4. Configuration design (TOML)
+
+Library: **toml++** (header-only, MIT). Optional JSON mirror via nlohmann/json later if needed.
+
+```toml
+[case]
+name = "HyperCylM20"
+equations = "euler"             # euler | navier-stokes
+formulation = "nondimensional"  # nondimensional | dimensional
+flow = "steady"                 # steady | unsteady
+
+[grid]
+file = "HalfCylinderGrid80160.dat"
+scaling = 0.0381
+
+[numerics]
+inviscid_scheme = "nkfds-movers" # llf | roe | movers-h1 | movers-le1 | kfds | eccs | ...
+order = 1                        # 1 | 2
+limiter = "minmod"               # minmod | van-albada | venkatakrishnan
+time_method = "ssprk3"           # forward-euler | ssprk2 | ssprk3
+cfl = 0.4
+residual_smoothing_eps = 0.0     # epsirs
+
+[physics]
+gamma = 1.4                      # hard-coded today; becomes configurable
+Re_inf = 257354.0
+Mach_inf = 20.0
+alpha_deg = 0.0
+p_inf = 101325.0
+T_inf = 298.0
+
+[physics.reference_state]        # nondimensional runs only
+pressure = 100000
+temperature = 300
+density = 1.12
+velocity = 1
+
+[run]
+max_iterations = 100000
+total_time = 30.0                # unsteady stop time
+restart = false
+restart_file = ""
+
+[output]
+directory = "output"
+display_frequency = 1000
+write_frequency = 10000
+formats = ["vtk", "surface", "residual"]
+
+[[boundary]]
+edge = "jmin"                    # imin | imax | jmin | jmax
+start = 2                        # node range along the edge
+end   = 161
+type  = "farfield"
+
+[[boundary]]
+edge = "imax"
+start = 2
+end   = 161
+type  = "euler-wall"
+```
+
+Loader validates everything up-front with `file:line` diagnostics (toml++ node sources) and a
+schema check (unknown keys rejected). `tools/cfg2toml` converts each legacy pair
+(`Input*.cfg` + `GridTop*.dat`) into this format so all existing cases migrate mechanically.
+
+## 5. MPI design
+
+| Aspect | Decision |
+|---|---|
+| Decomposition | 1-D slabs along `j` first (N−1 interfaces); upgradeable to 2-D bisection/METIS |
+| Ghost depth | `ng = 3` (covers 2nd-order MUSCL + Green-Gauss face gradients) |
+| Halo exchange | Pack contiguous per-variable planes → `MPI_Sendrecv`; derived datatypes only after profiling |
+| Ordering | Halo fill **before** BC application each stage/substage (encode in driver) |
+| Reductions | Residual norms, min Δt, forces via `MPI_Allreduce` |
+| I/O | Phase A: rank-local writes + aggregator; Phase B option: parallel HDF5 + XDMF |
+| Restart | Fixed-width binary, typed header, MPI-agnostic layout |
+| Reproducibility | Reduction order ⇒ results depend on rank count within FP tolerance; documented + tested |
+
+## 6. Build system (Phase 1 — done)
+
+- Targets: `ns_legacy` (frozen original code, output name `2D_NS_Solver`), later `ns_core` +
+  `ns_solver`; `ns_tests` (GTest); `cfg2toml`.
+- Options: `NS_BUILD_TESTS` (ON), `NS_ENABLE_WARNINGS_AS_ERRORS` (OFF), sanitizers preset.
+- GTest: `find_package` first, FetchContent fallback (pinned release).
+- Presets in `CMakePresets.json`; ccache-friendly; Ninja or Makefiles both fine.
+- Old `Makefile` retained until parity is proven, then removed.
+
+## 7. Testing strategy (Google Test)
+
+| Layer | Content |
+|---|---|
+| Unit | EOS round-trips, sound speed; flux constancy on uniform states; Roe eigenvalues; limiter properties (min-max, symmetry); minmod incl. tie case (regression for the UB fix); quad metrics on known geometry; config parse/validation errors; halo pack/unpack logic |
+| Verification | Sod problem (1D-in-2D); isentropic vortex; order-of-accuracy convergence (L1 rates ≈1 and ≈2); laminar flat plate vs `input/Blasius*.dat` references |
+| Regression | Golden outputs vs legacy solver for ramp-Euler, Blasius-NS, hypersonic half-cylinder cases captured by `scripts/capture_regression.sh` (byte-compare via SHA256 with `scripts/compare_regression.sh`) |
+| MPI | Same case on 1/2/4 ranks; residual trajectories match within tolerance; smoke scaling test under `mpirun` |
+
+## 8. Phased roadmap
+
+| Phase | Scope | Gate |
+|---|---|---|
+| 0 ✅ | Baseline audit + bug fixes (see §2.2) | fixes reviewed; 11/11 unit tests green |
+| 1 ✅ | CMake + GTest scaffolding + regression scripts | `ctest` green; goldens captured post-fix for ramp-Euler, Blasius-NS, hypercyl-80160 (200-iter smokes); compare tool idempotent |
+| 2 ✅ | TOML config loader + validator + cfg2toml tool; unit tests | 33/33 tests green; all 6 convertible legacy cases migrated to `configs/*.toml` via `scripts/migrate_configs.sh` and re-validated (4 known-incompatible inputs documented in §2.3) |
+| 3 ✅ | Mesh/fields/io infra (ghost-aware fields, metrics, legacy grid reader, VTK writer, binary restart) | 49 tests green incl. hand-computed geometry (uniform/affine/skewed-quad shoelace), real HalfCylinder grid (all areas > 0), VTK content, restart bit-exact round-trip, truncation/corruption rejection; ASan/UBSan clean |
+| 4 | Physics port (EOS, gradients, viscous fluxes) | matches legacy on synthetic fields |
+| 5 | Inviscid schemes port (LLF → Roe → MOVERS/KFDS/ECCS) w/ deep review | per-scheme parity vs goldens |
+| 6 | Steppers, BC framework, driver → single-rank end-to-end | full-case parity |
+| 7 | MPI: decomposition, halos, reductions, parallel restart | N-rank ≡ 1-rank; scaling report |
+| 8 | Perf/polish: fix loop order/layout for vectorization, sanitizers clean, clang-tidy, docs | benchmarks + docs |
+
+Legacy Makefile is deleted at end of Phase 6 (after parity), `legacy/` tree retired at end of
+Phase 7.
+
+## 9. Dependencies
+
+| Package | Version pin | Purpose |
+|---|---|---|
+| Google Test | v1.15.x (FetchContent) | unit/regression tests |
+| toml++ | v3.4.0 (FetchContent) | config parsing |
+| MPI | system (OpenMPI present on dev box) | parallelism |
+| fmt / CLI11 | optional | logging / argv (decide at Phase 2) |
+
+## 10. Open decisions
+
+1. ~~TOML-only vs dual TOML/JSON~~ → default TOML-only; JSON backend only if a concrete need appears.
+2. Compiler floor: GCC ≥ 13 recommended (`std::expected`/`std::format` completeness); swap `View2D` → `std::mdspan` when libstdc++ ships it.
+3. Whether historical published results need bitwise reproduction (would require keeping the old
+   Δt bug behind a compat flag) — presumed no, given fixes were requested.
+
+## 11. How to build & test (current state)
+
+```bash
+cmake --preset release          # or: debug / asan
+cmake --build --preset release -j
+ctest --preset release          # unit tests
+scripts/capture_regression.sh   # rebuilds, runs shortened legacy cases, archives goldens
+scripts/compare_regression.sh <dirA> <dirB>   # SHA256 byte comparison
+```
+
+Note: cmake was installed locally at `~/.local/opt/cmake-3.31/bin` on the dev box
+(no sudo available); add it to PATH or install distro-wide when possible.

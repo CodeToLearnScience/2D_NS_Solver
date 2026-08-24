@@ -19,3 +19,9 @@ src/.vscode/
 grid/*.vtk
 grid/*.dat
 a.out
+
+# CMake / refactor scaffolding
+build/
+regression/
+compile_commands.json
+input/generated_*.cfg
