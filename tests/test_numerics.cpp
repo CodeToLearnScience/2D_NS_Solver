@@ -10,6 +10,7 @@
 
 #include "numerics/face_data.hpp"
 #include "numerics/llf.hpp"
+#include "numerics/schemes.hpp"
 
 namespace {
 
@@ -165,6 +166,87 @@ TEST(NumericsInvariants, MinmodFluxLimiterBoundsAndValues) {
     EXPECT_DOUBLE_EQ(minmod_flux_limiter(-1.0, 1.0), 0.0);   // sign change -> 0
     EXPECT_DOUBLE_EQ(minmod_flux_limiter(2.0, 1.0), 1.0);    // r > 1 clamps
     EXPECT_NEAR(minmod_flux_limiter(0.5, 1.0), 0.5 / (1.0 + 1e-16), 1e-15);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5b schemes (7, 24, 30) -- the baseline-critical set
+// ---------------------------------------------------------------------------
+
+TEST(NumericsParity, NkfdsMoversFirstOrderScheme7MatchesLegacyBitwise) {
+    SchemeRig rig;
+    rig.reload_grid();
+
+    MultiField<double> diss(kNConv, kNx, kNy, kNg);
+    diss.fill(0.0);
+    // ND cp as legacy InitFlowNonDimensional sets it: cp = 1/((gamma-1)*M^2)
+    const double cp = 1.0 / ((rig.eos.gamma - 1.0) * 2.0 * 2.0);
+    nkfds_movers_dissipation_first_order(rig.mesh, rig.metrics, rig.dv, rig.eos, cp,
+                                         diss);
+
+    for (const auto& g : goldens::diss_nk7)
+        for (int k = 0; k < 4; ++k)
+            EXPECT_DOUBLE_EQ(diss(k, g.i, g.j), g.v[k])
+                << "diss_nk7 plane " << k << " at (" << g.i << "," << g.j << ")";
+
+    MultiField<double> rhs(kNConv, kNx, kNy, kNg);
+    assemble_rhs_from_average_fluxes(rig.mesh, rig.metrics, rig.ifaces.avg_flux,
+                                     rig.jfaces.avg_flux, diss, rhs);
+    for (const auto& g : goldens::rhs_nk7)
+        for (int k = 0; k < 4; ++k)
+            EXPECT_DOUBLE_EQ(rhs(k, g.i, g.j), g.v[k])
+                << "rhs_nk7 plane " << k << " at (" << g.i << "," << g.j << ")";
+}
+
+TEST(NumericsParity, RoeSecondOrderScheme24MatchesLegacyBitwise) {
+    SchemeRig rig;
+    rig.reload_grid();
+
+    MultiField<double> dui(kNConv, kNx, kNy, kNg), duj(kNConv, kNx, kNy, kNg);
+    primitive_differences(rig.dv, dui, duj);
+
+    MultiField<double> diss(kNConv, kNx, kNy, kNg);
+    diss.fill(0.0);
+    roe_dissipation_second_order(rig.mesh, rig.metrics, rig.dv, dui, duj, rig.eos, diss);
+
+    for (const auto& g : goldens::diss_roe24)
+        for (int k = 0; k < 4; ++k)
+            EXPECT_DOUBLE_EQ(diss(k, g.i, g.j), g.v[k])
+                << "diss_roe24 plane " << k << " at (" << g.i << "," << g.j << ")";
+
+    MultiField<double> rhs(kNConv, kNx, kNy, kNg);
+    assemble_rhs_from_average_fluxes(rig.mesh, rig.metrics, rig.ifaces.avg_flux,
+                                     rig.jfaces.avg_flux, diss, rhs);
+    for (const auto& g : goldens::rhs_roe24)
+        for (int k = 0; k < 4; ++k)
+            EXPECT_DOUBLE_EQ(rhs(k, g.i, g.j), g.v[k])
+                << "rhs_roe24 plane " << k << " at (" << g.i << "," << g.j << ")";
+}
+
+TEST(NumericsParity, NkfdsMoversSecondOrderScheme30MatchesLegacyBitwise) {
+    SchemeRig rig;
+    rig.reload_grid();
+
+    MultiField<double> dui(kNConv, kNx, kNy, kNg), duj(kNConv, kNx, kNy, kNg);
+    primitive_differences(rig.dv, dui, duj);
+
+    MultiField<double> diss(kNConv, kNx, kNy, kNg);
+    diss.fill(0.0);
+    const double cp = 1.0 / ((rig.eos.gamma - 1.0) * 2.0 * 2.0);
+    nkfds_movers_dissipation_second_order(rig.mesh, rig.metrics, rig.dv, dui, duj,
+                                          rig.eos, cp, diss);
+
+    for (const auto& g : goldens::diss_nk30)
+        for (int k = 0; k < 4; ++k)
+            EXPECT_DOUBLE_EQ(diss(k, g.i, g.j), g.v[k])
+                << "diss_nk30 plane " << k << " at (" << g.i << "," << g.j << ")";
+
+    MultiField<double> rhs(kNConv, kNx, kNy, kNg);
+    assemble_rhs_from_average_fluxes(rig.mesh, rig.metrics, rig.ifaces.avg_flux,
+                                     rig.jfaces.avg_flux, diss, rhs);
+    for (const auto& g : goldens::rhs_nk30)
+        for (int k = 0; k < 4; ++k)
+            EXPECT_DOUBLE_EQ(rhs(k, g.i, g.j), g.v[k])
+                << "rhs_nk30 plane " << k << " at (" << g.i << "," << g.j << ")";
 }
 
 }  // namespace
