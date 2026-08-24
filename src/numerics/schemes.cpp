@@ -1,6 +1,7 @@
 #include "numerics/schemes.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <cmath>
 
 #include "numerics/face_data.hpp"  // kNConv
@@ -109,7 +110,11 @@ struct MoversCommon {
     double e_max = 0;
 
     explicit MoversCommon(const StructuredMesh& mesh, const MultiField<double>& dv,
-                          const physics::IdealGas& eos) {
+                          const physics::IdealGas& eos, double emax_override) {
+        if (!std::isnan(emax_override)) {
+            e_max = emax_override;
+            return;
+        }
         const int nx = mesh.nx(), ny = mesh.ny();
         const double gam1 = eos.gamma - 1.0;
         // legacy window: i in [2,id1] (= [0,nx]) x j in [2,jb] (= [0,ny))
@@ -126,18 +131,24 @@ struct MoversCommon {
 
 }  // namespace
 
+double compute_emax_window(const StructuredMesh& mesh, const MultiField<double>& dv,
+                           const physics::IdealGas& eos) {
+    return MoversCommon(mesh, dv, eos, std::numeric_limits<double>::quiet_NaN()).e_max;
+}
+
 void nkfds_movers_dissipation_first_order(const StructuredMesh& mesh,
                                           const MeshMetrics& metrics,
                                           const MultiField<double>& dv,
                                           const physics::IdealGas& eos, double cp,
-                                          MultiField<double>& diss) {
+                                          MultiField<double>& diss,
+                                          double emax_override) {
     const int nx = mesh.nx(), ny = mesh.ny();
     const double gamma = eos.gamma;
     const double gam1 = gamma - 1.0;
     const double ggm1 = gamma / gam1;
     const Field<Vec2>& si = metrics.si;
     const Field<Vec2>& sj = metrics.sj;
-    const MoversCommon common(mesh, dv, eos);
+    const MoversCommon common(mesh, dv, eos, emax_override);
 
     double fr[4], fl[4], ur[4], ul[4];
 
@@ -254,14 +265,15 @@ void nkfds_movers_dissipation_second_order(const StructuredMesh& mesh,
                                            const MultiField<double>& dui,
                                            const MultiField<double>& duj,
                                            const physics::IdealGas& eos, double cp,
-                                           MultiField<double>& diss) {
+                                           MultiField<double>& diss,
+                                           double emax_override) {
     const int nx = mesh.nx(), ny = mesh.ny();
     const double gamma = eos.gamma;
     const double gam1 = gamma - 1.0;
     const double ggm1 = gamma / gam1;
     const Field<Vec2>& si = metrics.si;
     const Field<Vec2>& sj = metrics.sj;
-    const MoversCommon common(mesh, dv, eos);
+    const MoversCommon common(mesh, dv, eos, emax_override);
 
     double fr[4], fl[4], ur[4], ul[4];
 

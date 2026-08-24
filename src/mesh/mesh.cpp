@@ -1,6 +1,9 @@
 #include "mesh/mesh.hpp"
 
+#include <algorithm>
 #include <charconv>
+#include <utility>
+#include <vector>
 #include <cmath>
 #include <fstream>
 #include <sstream>
@@ -48,43 +51,83 @@ private:
 StructuredMesh::StructuredMesh(int nx, int ny, int ng)
     : nx_(nx), ny_(ny), ng_(ng), x_(nx + 1, ny + 1, ng), y_(nx + 1, ny + 1, ng) {}
 
+namespace {
+// Reads every node pair of the file into flat arrays (x,y interleaved per node).
+std::expected<std::pair<std::vector<double>, std::vector<double>>, Error> read_all_nodes(
+    const std::filesystem::path& file, int nx, int ny) {
+    TokenReader in(file);
+    if (!in.ok())
+        return std::unexpected(
+            Error{std::format("grid file not readable: '{}'", file.string())});
+    std::vector<double> xs, ys;
+    const std::size_t n =
+        static_cast<std::size_t>(nx + 1) * static_cast<std::size_t>(ny + 1);
+    xs.reserve(n);
+    ys.reserve(n);
+    for (std::size_t p = 0; p < n; ++p) {
+        if (!in.next_double().has_value())
+            return std::unexpected(Error{std::format(
+                "grid file '{}': unexpected end of data at node {} of {}", file.string(),
+                p, n)});
+        auto x = in.next_double();
+        auto y = in.next_double();
+        if (!x || !y)
+            return std::unexpected(Error{std::format(
+                "grid file '{}': malformed coordinate pair at node {}", file.string(), p)});
+        xs.push_back(*x);
+        ys.push_back(*y);
+    }
+    if (in.remaining() != 0)
+        return std::unexpected(Error{std::format(
+            "grid file '{}': {} trailing values after the last node", file.string(),
+            in.remaining())});
+    return std::make_pair(std::move(xs), std::move(ys));
+}
+}  // namespace
+
 std::expected<StructuredMesh, Error> StructuredMesh::load_legacy(
     const std::filesystem::path& file, int nx, int ny, int ng, double scaling) {
     if (nx < 1 || ny < 1 || ng < 0)
         return std::unexpected(Error{std::format("invalid mesh dims nx={} ny={} ng={}", nx,
                                                  ny, ng)});
+    auto nodes = read_all_nodes(file, nx, ny);
+    if (!nodes) return std::unexpected(nodes.error());
+    const auto& xs = nodes->first;
+    const auto& ys = nodes->second;
 
-    TokenReader in(file);
-    if (!in.ok())
-        return std::unexpected(Error{std::format("grid file not readable: '{}'",
-                                                 file.string())});
-
-    const std::size_t n_nodes = static_cast<std::size_t>(nx + 1) * (ny + 1);
     StructuredMesh mesh(nx, ny, ng);
-
-    for (int j = 0; j <= ny; ++j) {
+    for (int j = 0; j <= ny; ++j)
         for (int i = 0; i <= nx; ++i) {
-            // skip the legacy sequential point index
-            if (!in.next_double().has_value())
-                return std::unexpected(Error{std::format(
-                    "grid file '{}': unexpected end of data at node {} of {}", file.string(),
-                    j * (nx + 1) + i, n_nodes)});
-            auto x = in.next_double();
-            auto y = in.next_double();
-            if (!x || !y)
-                return std::unexpected(Error{std::format(
-                    "grid file '{}': malformed coordinate pair at node {}", file.string(),
-                    j * (nx + 1) + i)});
-            mesh.node_x()(i, j) = *x * scaling;
-            mesh.node_y()(i, j) = *y * scaling;
+            const std::size_t p = static_cast<std::size_t>(j) * (nx + 1) + i;
+            mesh.node_x()(i, j) = xs[p] * scaling;
+            mesh.node_y()(i, j) = ys[p] * scaling;
+        }
+    return mesh;
+}
+
+std::expected<StructuredMesh, Error> StructuredMesh::load_legacy_slab(
+    const std::filesystem::path& file, int nx, int ny_global, int j0, int j1, int ng,
+    double scaling) {
+    if (nx < 1 || ny_global < 1 || ng < 0 || j0 < 0 || j1 <= j0 || j1 > ny_global)
+        return std::unexpected(
+            Error{std::format("invalid slab request nx={} ny={} [{},{}) ng={}", nx,
+                              ny_global, j0, j1, ng)});
+    auto nodes = read_all_nodes(file, nx, ny_global);
+    if (!nodes) return std::unexpected(nodes.error());
+    const auto& xs = nodes->first;
+    const auto& ys = nodes->second;
+
+    const int ny_local = j1 - j0;
+    StructuredMesh mesh(nx, ny_local, ng);
+    for (int jl = -ng; jl <= ny_local + ng; ++jl) {
+        const int jg = std::clamp(j0 + jl, 0, ny_global);
+        for (int il = -ng; il <= nx + ng; ++il) {
+            const int ig = std::clamp(il, 0, nx);
+            const std::size_t p = static_cast<std::size_t>(jg) * (nx + 1) + ig;
+            mesh.node_x()(il, jl) = xs[p] * scaling;
+            mesh.node_y()(il, jl) = ys[p] * scaling;
         }
     }
-
-    if (in.remaining() != 0)
-        return std::unexpected(Error{std::format(
-            "grid file '{}': {} trailing values after the last node", file.string(),
-            in.remaining())});
-
     return mesh;
 }
 

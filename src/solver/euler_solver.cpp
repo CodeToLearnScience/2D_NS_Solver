@@ -1,5 +1,9 @@
 #include "solver/euler_solver.hpp"
 
+#include <cstdio>
+#include <cstdlib>
+#include <limits>
+
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -78,10 +82,60 @@ EulerSolver::EulerSolver(const StructuredMesh& mesh, const config::Config& cfg)
       ifaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
       jfaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
       segments_(runtime_segments(cfg.boundaries)) {
+    fill_meta_from_mesh();
+    finish_init();
+}
+
+EulerSolver::EulerSolver(const StructuredMesh& local_mesh, const config::Config& cfg,
+                         parallel::SlabDecomposition decomp, FullGridMeta meta)
+    : mesh_(local_mesh),
+      metrics_(compute_metrics(local_mesh)),
+      cfg_(cfg),
+      cv_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      cvold_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      dv_(8, local_mesh.nx(), local_mesh.ny(), 2),
+      diss_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      rhs_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      dui_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      duj_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      tstep_(local_mesh.nx(), local_mesh.ny(), 2),
+      ifaces_(kNConv, local_mesh.nx() + 1, local_mesh.ny() + 1, 2),
+      jfaces_(kNConv, local_mesh.nx() + 1, local_mesh.ny() + 1, 2),
+      segments_(runtime_segments(cfg.boundaries)),
+      decomp_(decomp),
+      mpi_mode_(decomp.nranks > 1),
+      halo_(local_mesh.nx(), decomp.ny_local(), 2,
+            decomp.owns_lower_neighbor() ? decomp.rank - 1 : -1,
+            decomp.owns_upper_neighbor() ? decomp.rank + 1 : -1),
+      meta_(std::move(meta)) {
+    finish_init();
+}
+
+void EulerSolver::fill_meta_from_mesh() {
+    meta_.nx = mesh_.nx();
+    meta_.ny = mesh_.ny();
+    meta_.node_x.assign(static_cast<std::size_t>(meta_.nx + 1) * (meta_.ny + 1), 0.0);
+    meta_.node_y.assign(meta_.node_x.size(), 0.0);
+    for (int j = 0; j <= meta_.ny; ++j)
+        for (int i = 0; i <= meta_.nx; ++i) {
+            meta_.node_x[static_cast<std::size_t>(j) * (meta_.nx + 1) + i] =
+                mesh_.node_x()(i, j);
+            meta_.node_y[static_cast<std::size_t>(j) * (meta_.nx + 1) + i] =
+                mesh_.node_y()(i, j);
+        }
+}
+
+void EulerSolver::finish_init() {
     init_freestream();
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) halo_.exchange(dv_);
+#endif
     // legacy main.cpp: Dependent_Variables BEFORE the pre-loop boundary pass,
     // so the whole canvas starts from cv-reconstructed (not analytic) values
     dependent_variables_all();
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) halo_.exchange(dv_);
+#endif
     apply_boundaries();
 }
 
@@ -161,10 +215,15 @@ void EulerSolver::time_step_euler() {
         }
 
     // QUIRK preserved: "local" dt is overridden by the interior minimum.
+    // MPI: min is order-independent, so dt stays bitwise-identical to serial.
     double tsmin = 1e32;
     for (int j = 0; j < ny; ++j)
         for (int i = 0; i < nx; ++i)
             if (tstep_(i, j) < tsmin) tsmin = tstep_(i, j);
+#ifdef NS_WITH_MPI
+    if (mpi_mode_)
+        MPI_Allreduce(MPI_IN_PLACE, &tsmin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+#endif
     for (int j = 0; j < ny; ++j)
         for (int i = 0; i < nx; ++i) tstep_(i, j) = tsmin;
 }
@@ -176,8 +235,15 @@ void EulerSolver::compute_fluxes() {
     primitive_differences(dv_, dui_, duj_);
 
     // QUIRK: cp_ carries Forces()' clobbered value from the previous iteration.
+    double emax_hint = std::numeric_limits<double>::quiet_NaN();
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        emax_hint = numerics::compute_emax_window(mesh_, dv_, eos_);
+        MPI_Allreduce(MPI_IN_PLACE, &emax_hint, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    }
+#endif
     nkfds_movers_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_, eos_,
-                                          mah_cp_, diss_);
+                                          mah_cp_, diss_, emax_hint);
 
     assemble_rhs_from_average_fluxes(mesh_, metrics_, ifaces_.avg_flux,
                                      jfaces_.avg_flux, diss_, rhs_);
@@ -192,8 +258,31 @@ void EulerSolver::transport_at(int i, int j) {
 // Boundary kernels -- legacy index translation: bnode/sbind/ebind are legacy
 // node indices; subtract 2 for the new canvas.
 // ---------------------------------------------------------------------------
+int EulerSolver::decomp_offset() const {
+#ifdef NS_WITH_MPI
+    return mpi_mode_ ? decomp_.j0 : 0;
+#else
+    return 0;
+#endif
+}
+bool EulerSolver::owns_rows(int glo, int ghi) const {
+#ifdef NS_WITH_MPI
+    if (!mpi_mode_) return true;
+    return std::max(glo, decomp_.j0) <= std::min(ghi, decomp_.j1 - 1);
+#else
+    (void)glo; (void)ghi;
+    return true;
+#endif
+}
+
 void EulerSolver::bc_transmissive(const BoundarySegmentRuntime& s) {
-    const int lo = s.start - 2, hi = s.end - 2;
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        if (s.edge == config::Edge::YMin && !decomp_.owns_jmin()) return;
+        if (s.edge == config::Edge::YMax && !decomp_.owns_jmax()) return;
+    }
+#endif
+    int lo = s.start - 2, hi = s.end - 2;
     const int nx = mesh_.nx(), ny = mesh_.ny();
 
     switch (s.edge) {
@@ -212,14 +301,22 @@ void EulerSolver::bc_transmissive(const BoundarySegmentRuntime& s) {
                 }
             break;
         case config::Edge::XMax:
-            for (int j = lo; j <= hi; ++j)
+#ifdef NS_WITH_MPI
+            lo = mpi_mode_ ? std::max(lo, decomp_.j0) : lo;
+            hi = mpi_mode_ ? std::min(hi, decomp_.j1 - 1) : hi;
+#endif
+            for (int j = lo - decomp_offset(); j <= hi - decomp_offset(); ++j)
                 for (int k = 0; k < 8; ++k) {
                     dv_(k, nx, j) = dv_(k, nx - 1, j);
                     dv_(k, nx + 1, j) = dv_(k, nx, j);
                 }
             break;
         case config::Edge::XMin:
-            for (int j = lo; j <= hi; ++j)
+#ifdef NS_WITH_MPI
+            lo = mpi_mode_ ? std::max(lo, decomp_.j0) : lo;
+            hi = mpi_mode_ ? std::min(hi, decomp_.j1 - 1) : hi;
+#endif
+            for (int j = lo - decomp_offset(); j <= hi - decomp_offset(); ++j)
                 for (int k = 0; k < 8; ++k) {
                     dv_(k, -1, j) = dv_(k, 0, j);
                     dv_(k, -2, j) = dv_(k, -1, j);
@@ -229,6 +326,12 @@ void EulerSolver::bc_transmissive(const BoundarySegmentRuntime& s) {
 }
 
 void EulerSolver::bc_prescribed_inflow(const BoundarySegmentRuntime& s) {
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        if (s.edge == config::Edge::YMin && !decomp_.owns_jmin()) return;
+        if (s.edge == config::Edge::YMax && !decomp_.owns_jmax()) return;
+    }
+#endif
     double rho = rhoinf_, uu = uinf_, vv = vinf_, pp = pinf_;
     if (s.state) {
         rho = (*s.state)[0];
@@ -236,7 +339,7 @@ void EulerSolver::bc_prescribed_inflow(const BoundarySegmentRuntime& s) {
         vv = (*s.state)[2];
         pp = (*s.state)[3];
     }
-    const int lo = s.start - 2, hi = s.end - 2;
+    int lo = s.start - 2, hi = s.end - 2;
     const int nx = mesh_.nx(), ny = mesh_.ny();
 
     auto fill = [&](int ci, int cj) {
@@ -261,13 +364,21 @@ void EulerSolver::bc_prescribed_inflow(const BoundarySegmentRuntime& s) {
             }
             break;
         case config::Edge::XMax:
-            for (int j = lo; j <= hi; ++j) {
+#ifdef NS_WITH_MPI
+            lo = mpi_mode_ ? std::max(lo, decomp_.j0) : lo;
+            hi = mpi_mode_ ? std::min(hi, decomp_.j1 - 1) : hi;
+#endif
+            for (int j = lo - decomp_offset(); j <= hi - decomp_offset(); ++j) {
                 fill(nx, j);
                 for (int k = 0; k < 8; ++k) dv_(k, nx + 1, j) = dv_(k, nx, j);
             }
             break;
         case config::Edge::XMin:
-            for (int j = lo; j <= hi; ++j) {
+#ifdef NS_WITH_MPI
+            lo = mpi_mode_ ? std::max(lo, decomp_.j0) : lo;
+            hi = mpi_mode_ ? std::min(hi, decomp_.j1 - 1) : hi;
+#endif
+            for (int j = lo - decomp_offset(); j <= hi - decomp_offset(); ++j) {
                 fill(-1, j);
                 for (int k = 0; k < 8; ++k) dv_(k, -2, j) = dv_(k, -1, j);
             }
@@ -276,9 +387,15 @@ void EulerSolver::bc_prescribed_inflow(const BoundarySegmentRuntime& s) {
 }
 
 void EulerSolver::bc_slip_wall(const BoundarySegmentRuntime& s) {
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        if (s.edge == config::Edge::YMin && !decomp_.owns_jmin()) return;
+        if (s.edge == config::Edge::YMax && !decomp_.owns_jmax()) return;
+    }
+#endif
     const Field<Vec2>& si = metrics_.si;
     const Field<Vec2>& sj = metrics_.sj;
-    const int lo = s.start - 2, hi = s.end - 2;
+    int lo = s.start - 2, hi = s.end - 2;
     const int nx = mesh_.nx(), ny = mesh_.ny();
 
     auto reflect_fill = [&](int gi, int gj, int ii, int ij, double nx, double ny) {
@@ -304,17 +421,25 @@ void EulerSolver::bc_slip_wall(const BoundarySegmentRuntime& s) {
             reflect_fill(i, ny, i, ny - 1, -sj(i, ny).x / ds, -sj(i, ny).y / ds);
             for (int k = 0; k < 8; ++k) dv_(k, i, ny + 1) = dv_(k, i, ny);
         }
-    } else if (s.edge == config::Edge::XMin) {
-        for (int j = lo; j <= hi; ++j) {
-            const double ds = std::sqrt(si(0, j).x * si(0, j).x + si(0, j).y * si(0, j).y);
-            reflect_fill(-1, j, 0, j, si(0, j).x / ds, si(0, j).y / ds);
-            for (int k = 0; k < 8; ++k) dv_(k, -2, j) = dv_(k, -1, j);
-        }
-    } else {  // XMax
-        for (int j = lo; j <= hi; ++j) {
-            const double ds = std::sqrt(si(nx, j).x * si(nx, j).x + si(nx, j).y * si(nx, j).y);
-            reflect_fill(nx, j, nx - 1, j, -si(nx, j).x / ds, -si(nx, j).y / ds);
-            for (int k = 0; k < 8; ++k) dv_(k, nx + 1, j) = dv_(k, nx, j);
+    } else {  // XMin / XMax
+#ifdef NS_WITH_MPI
+        lo = mpi_mode_ ? std::max(lo, decomp_.j0) : lo;
+        hi = mpi_mode_ ? std::min(hi, decomp_.j1 - 1) : hi;
+#endif
+        const bool left = s.edge == config::Edge::XMin;
+        for (int j = lo - decomp_offset(); j <= hi - decomp_offset(); ++j) {
+            if (left) {
+                const double ds =
+                    std::sqrt(si(0, j).x * si(0, j).x + si(0, j).y * si(0, j).y);
+                reflect_fill(-1, j, 0, j, si(0, j).x / ds, si(0, j).y / ds);
+                for (int k = 0; k < 8; ++k) dv_(k, -2, j) = dv_(k, -1, j);
+            } else {
+                const double ds =
+                    std::sqrt(si(nx, j).x * si(nx, j).x + si(nx, j).y * si(nx, j).y);
+                reflect_fill(nx, j, nx - 1, j, -si(nx, j).x / ds,
+                             -si(nx, j).y / ds);
+                for (int k = 0; k < 8; ++k) dv_(k, nx + 1, j) = dv_(k, nx, j);
+            }
         }
     }
 }
@@ -332,6 +457,30 @@ void EulerSolver::update_corners() {
     // legacy boundary_conditions.cpp: average the four corner cells' dv across
     // their inner neighbours, then Dependent_Variables_One recomputes them from
     // the (never-updated, still-freestream) cv ghosts.
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        const bool top = decomp_.owns_jmax(), bottom = decomp_.owns_jmin();
+        const int ib = mesh_.nx() - 1, jb = mesh_.ny() - 1;
+        auto do_corner = [&](int ci, int cj) {
+            const int di = ci < 0 ? 1 : -1;
+            const int dj = cj < 0 ? 1 : -1;
+            for (int k = 0; k < 8; ++k)
+                dv_(k, ci, cj) = 0.5 * (dv_(k, ci + di, cj) + dv_(k, ci, cj + dj));
+            compute_dependent_variables_at(cv_, dv_, ci, cj, eos_,
+                                           physics::Formulation::Nondimensional,
+                                           scaling());
+        };
+        if (bottom) {
+            do_corner(-1, -1);
+            do_corner(ib + 1, -1);
+        }
+        if (top) {
+            do_corner(-1, jb + 1);
+            do_corner(ib + 1, jb + 1);
+        }
+        return;
+    }
+#endif
     const int ib = mesh_.nx() - 1, jb = mesh_.ny() - 1;
     const int corners[4][2] = {{-1, -1}, {ib + 1, -1}, {-1, jb + 1}, {ib + 1, jb + 1}};
     for (auto& c : corners) {
@@ -394,10 +543,35 @@ void EulerSolver::residue_and_forces(int iter, double dt) {
                 iresmax_ = i + 2;  // legacy index reported
                 jresmax_ = j + 2;
             }
-            rn2 += std::pow(cv_(U, i, j) - cvold_(U, i, j), 2);
+                rn2 += std::pow(cv_(U, i, j) - cvold_(U, i, j), 2);
             rn3 += std::pow(cv_(V, i, j) - cvold_(V, i, j), 2);
             rn4 += std::pow(cv_(E, i, j) - cvold_(E, i, j), 2);
         }
+
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        double partial[4] = {rn1, rn2, rn3, rn4};
+        MPI_Allreduce(MPI_IN_PLACE, partial, 4, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        rn1 = partial[0];
+        rn2 = partial[1];
+        rn3 = partial[2];
+        rn4 = partial[3];
+        // location of |drho| maximum: largest (globalJ,globalI) among ties,
+        // approximating the legacy last-wins scan
+        double lv = dcv1max;
+        int loc = (jresmax_ << 16) | iresmax_;
+        MPI_Allreduce(MPI_IN_PLACE, &lv, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        if (lv > 0 && std::fabs(dcv1max) == lv) {
+            MPI_Allreduce(MPI_IN_PLACE, &loc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+            jresmax_ = loc >> 16;
+            iresmax_ = loc & 0xFFFF;
+        } else if (lv > 0) {
+            MPI_Allreduce(MPI_IN_PLACE, &loc, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+            jresmax_ = loc >> 16;
+            iresmax_ = loc & 0xFFFF;
+        }
+    }
+#endif
 
     if (iter == 1) {
         dcv11_ = std::sqrt(rn1) + 1e-32;
@@ -423,9 +597,22 @@ void EulerSolver::residue_and_forces(int iter, double dt) {
     if (wall != nullptr) {
         const Field<Vec2>& si = metrics_.si;
         const Field<Vec2>& sj = metrics_.sj;
+#ifdef NS_WITH_MPI
+        // vertical walls span all j: every rank integrates its slab overlap
+        auto clip_lo = [&](int n0) {
+            return mpi_mode_ ? std::max(n0, decomp_.j0) : n0;
+        };
+        auto clip_hi = [&](int n1) {
+            return mpi_mode_ ? std::min(n1, decomp_.j1 - 1) : n1;
+        };
+#endif
         if (wall->edge == config::Edge::YMin || wall->edge == config::Edge::YMax) {
             const bool bottom = wall->edge == config::Edge::YMin;
-            for (int n = wall->start - 2; n <= wall->end - 2; ++n) {
+            bool owner = true;
+#ifdef NS_WITH_MPI
+            owner = !mpi_mode_ || (bottom ? decomp_.owns_jmin() : decomp_.owns_jmax());
+#endif
+            for (int n = (owner ? wall->start - 2 : 1); owner && n <= wall->end - 2; ++n) {
                 const int i = n;
                 const int inner = bottom ? 0 : ny - 1;
                 const int gface = bottom ? 0 : ny;
@@ -456,8 +643,15 @@ void EulerSolver::residue_and_forces(int iter, double dt) {
             }
         } else {
             const bool left = wall->edge == config::Edge::XMin;
-            for (int n = wall->start - 2; n <= wall->end - 2; ++n) {
-                const int j = n;
+            const int wlo = wall->start - 2, whi = wall->end - 2;
+#ifdef NS_WITH_MPI
+            const int wlo2 = mpi_mode_ ? std::max(wlo, decomp_.j0) : wlo;
+            const int whi2 = mpi_mode_ ? std::min(whi, decomp_.j1 - 1) : whi;
+#else
+            const int wlo2 = wlo, whi2 = whi;
+#endif
+                for (int n = wlo2; n <= whi2; ++n) {
+                const int j = n - decomp_offset();  // global -> local row
                 const int inner = left ? 0 : nx - 1;
                 const int gface = left ? 0 : nx;
                 double sx, sy;
@@ -503,9 +697,14 @@ void EulerSolver::residue_and_forces(int iter, double dt) {
 }
 
 int EulerSolver::run(int max_iterations) {
+    const bool dbg = std::getenv("NS_DEBUG_PROGRESS") != nullptr;
     double dt_prev = 0.0;
     int iter = 0;
     while (iter < max_iterations) {
+#ifdef NS_WITH_MPI
+        if (dbg)
+            std::fprintf(stderr, "[R%d it%d enter]\n", decomp_.rank, iter + 1);
+#endif
         // QUIRK: legacy accumulates time with the PREVIOUS iteration's dt.
         time_ += dt_prev;
         ++iter;
@@ -514,13 +713,31 @@ int EulerSolver::run(int max_iterations) {
         diss_.fill(0.0);
 
         time_step_euler();
+#ifdef NS_WITH_MPI
+        if (dbg) std::fprintf(stderr, "[R%d it%d ts]\n", decomp_.rank, iter);
+#endif
         compute_fluxes();
+#ifdef NS_WITH_MPI
+        if (dbg) std::fprintf(stderr, "[R%d it%d flux]\n", decomp_.rank, iter);
+#endif
         scale_rhs_and_update();
         dependent_variables_all();
+#ifdef NS_WITH_MPI
+        if (mpi_mode_) {
+            if (dbg) std::fprintf(stderr, "[R%d it%d exch-in]\n", decomp_.rank, iter);
+            halo_.exchange(dv_);
+            if (dbg) std::fprintf(stderr, "[R%d it%d exch-out bc]\n", decomp_.rank, iter);
+        }
+#endif
         apply_boundaries();
 
         const double dt_now = tstep_(0, 0);  // global min after override
+        if (dbg)
+            std::fprintf(stderr, "[R%d it%d res-in]\n", decomp_.rank, iter);
         residue_and_forces(iter, dt_now);
+#ifdef NS_WITH_MPI
+        if (dbg) std::fprintf(stderr, "[R%d it%d res-out]\n", decomp_.rank, iter);
+#endif
         dt_prev = dt_now;
 
         iter_done_ = iter;
@@ -529,7 +746,78 @@ int EulerSolver::run(int max_iterations) {
     return iter_done_;
 }
 
+void EulerSolver::gather_plane(int k, std::vector<double>& framed) const {
+    using parallel::SlabDecomposition;
+    const bool gp_dbg = std::getenv("NS_DEBUG_PROGRESS") != nullptr;
+    if (gp_dbg)
+        std::fprintf(stderr, "[G%d r%d enter]\n", k,
+#ifdef NS_WITH_MPI
+                     decomp_.rank
+#else
+                     0
+#endif
+        );
+    const int nx = meta_.nx, ny = meta_.ny;
+    const int W = ny + 2;
+    framed.assign(static_cast<std::size_t>(nx + 2) * W, 0.0);
+    if (cached_valid_ && !cached_planes_[k].empty()) {
+        framed = cached_planes_[k];
+        return;
+    }
+
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) {
+        auto pack = [&](std::vector<double>& buf, int nrows) {
+            buf.resize(static_cast<std::size_t>(mesh_.nx() + 4) * (nrows + 4));
+            for (int a = 0; a < mesh_.nx() + 4; ++a)
+                for (int b = 0; b < nrows + 4; ++b)
+                    buf[static_cast<std::size_t>(a) * (nrows + 4) + b] =
+                        dv_(k, a - 2, b - 2);
+        };
+        auto place = [&](int j0, int nrows, const std::vector<double>& buf) {
+            for (int a = 0; a < mesh_.nx() + 4; ++a)
+                for (int b = 0; b < nrows + 4; ++b) {
+                    const int gi = a - 2, gj = j0 + b - 2;
+                    if (gi < -1 || gi > nx || gj < -1 || gj > ny) continue;
+                    framed[static_cast<std::size_t>(gi + 1) * W + (gj + 1)] =
+                        buf[static_cast<std::size_t>(a) * (nrows + 4) + b];
+                }
+        };
+
+        std::vector<double> mine;
+        pack(mine, decomp_.ny_local());
+        if (!is_root()) {
+            MPI_Send(mine.data(), static_cast<int>(mine.size()), MPI_DOUBLE, 0,
+                     900 + k, MPI_COMM_WORLD);
+            if (gp_dbg) std::fprintf(stderr, "[G%d sent]\n", k);
+            return;
+        }
+        if (gp_dbg) std::fprintf(stderr, "[G%d own-placed]\n", k);
+        place(decomp_.j0, decomp_.ny_local(), mine);  // root's own slab
+        for (int r = 1; r < decomp_.nranks; ++r) {
+            auto d = SlabDecomposition::make(decomp_.ny_global, decomp_.nranks, r);
+            std::vector<double> buf(static_cast<std::size_t>(mesh_.nx() + 4) *
+                                    (d.ny_local() + 4));
+            MPI_Recv(buf.data(), static_cast<int>(buf.size()), MPI_DOUBLE, r, 900 + k,
+                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            place(d.j0, d.ny_local(), buf);
+        }
+        cached_planes_[k] = framed;
+        cached_valid_ = true;
+        return;
+    }
+#endif
+    if (gp_dbg) std::fprintf(stderr, "[G%d done-serial]\n", k);
+    // serial: direct copy of the ghosted view restricted to [-1..nx][-1..ny]
+    for (int i = -1; i <= nx; ++i)
+        for (int j = -1; j <= ny; ++j)
+            framed[static_cast<std::size_t>(i + 1) * W + (j + 1)] = dv_(k, i, j);
+    cached_planes_[k] = framed;
+    cached_valid_ = true;
+}
+
 void EulerSolver::open_residue(const std::filesystem::path& path) {
+    if (!is_root()) return;  // rank 0 owns the residue file
     residue_.open(path);
     residue_.flags(std::ios::dec | std::ios::scientific);
     residue_.precision(10);
@@ -538,38 +826,68 @@ void EulerSolver::open_residue(const std::filesystem::path& path) {
 }
 
 void EulerSolver::write_solution(const std::filesystem::path& path) const {
+    const bool dbgw = std::getenv("NS_DEBUG_PROGRESS") != nullptr;
+    if (dbgw)
+        std::fprintf(stderr, "[ws enter root=%d]\n", static_cast<int>(is_root()));
+    std::vector<double> gp[8];
+    for (int k = 0; k < 8; ++k) {
+        if (dbgw) std::fprintf(stderr, "[W sol g%d]\n", k);
+        gather_plane(k, gp[k]);
+        if (dbgw)
+            std::fprintf(stderr, "[W sol G%d size=%zu root=%d]\n", k, gp[k].size(),
+                         static_cast<int>(is_root()));
+    }
+    const int nx = meta_.nx, ny = meta_.ny;
+    const int W = ny + 2;
+
+    if (!is_root()) return;
+
     std::ofstream o(path);
     o.flags(std::ios::dec | std::ios::scientific);
     o.precision(16);
     if (!o) throw std::runtime_error("cannot open solution file: " + path.string());
 
-    const int nx = mesh_.nx(), ny = mesh_.ny();
     o << "TITLE = \"Iter=" << iter_done_ << ", time=" << precise16(time_) << "\"\n"
       << "VARIABLES = \"xc\", \"yc\", \"rho\", \"u\", \"v\", \"p\", \"T\", \"Mach\"\n";
     o << "Zone T=\"" << precise16(time_) << "\", I=" << nx + 1 << ", J=" << ny + 1 << "\n";
 
+    auto node_at = [&](char which, int i, int j) -> double {
+        const auto& arr = which == 'x' ? meta_.node_x : meta_.node_y;
+        return arr[static_cast<std::size_t>(j) * (nx + 1) + i];
+    };
+    auto cell_at = [&](int k, int i, int j) -> double {
+        return gp[k][static_cast<std::size_t>(i + 1) * W + (j + 1)];
+    };
+    if (dbgw) std::fprintf(stderr, "[ws writing]\n");
     for (int j = 0; j <= ny; ++j)
         for (int i = 0; i <= nx; ++i) {
             auto avg = [&](int k) {
-                return 0.25 * (dv_(k, i, j) + dv_(k, i - 1, j) + dv_(k, i - 1, j - 1) +
-                               dv_(k, i, j - 1));
+                return 0.25 * (cell_at(k, i, j) + cell_at(k, i - 1, j) +
+                               cell_at(k, i - 1, j - 1) + cell_at(k, i, j - 1));
             };
             const double rho = avg(RHO), u = avg(U), v = avg(V), p = avg(P),
                          tt = avg(T), a = avg(A);
             const double mach = std::sqrt(u * u + v * v) / a;
-            o << mesh_.node_x()(i, j) << "\t" << mesh_.node_y()(i, j) << "\t" << rho
+            o << node_at('x', i, j) << "\t" << node_at('y', i, j) << "\t" << rho
               << "\t" << u << "\t" << v << "\t" << p << "\t" << tt << "\t" << mach
               << "\n";
         }
 }
 
 void EulerSolver::write_vtk(const std::filesystem::path& path) const {
+    // Reuses planes gathered by write_solution -- no second exchange, so
+    // non-root ranks must not enter at all (nothing to match on the wire).
+    if (!is_root() || !cached_valid_) return;
+    const int nx = meta_.nx, ny = meta_.ny;
+    const int W = ny + 2;
+    auto cell_at = [&](int k, int i, int j) -> double {
+        return cached_planes_[k][static_cast<std::size_t>(i + 1) * W + (j + 1)];
+    };
+
     std::ofstream o(path);
     o.flags(std::ios::dec | std::ios::scientific);
     o.precision(16);
     if (!o) throw std::runtime_error("cannot open vtk file: " + path.string());
-
-    const int nx = mesh_.nx(), ny = mesh_.ny();
     const long long n_nodes = static_cast<long long>(nx + 1) * (ny + 1);
 
     o << "# vtk DataFile Version 3.0\n";
@@ -578,13 +896,17 @@ void EulerSolver::write_vtk(const std::filesystem::path& path) const {
     o << "DIMENSIONS " << nx + 1 << " " << ny + 1 << " 1\n";
     o << "POINTS " << n_nodes << " double\n";
 
+    auto node_at = [&](char which, int i, int j) -> double {
+        const auto& arr = which == 'x' ? meta_.node_x : meta_.node_y;
+        return arr[static_cast<std::size_t>(j) * (nx + 1) + i];
+    };
     for (int j = 0; j <= ny; ++j)
         for (int i = 0; i <= nx; ++i)
-            o << mesh_.node_x()(i, j) << "\t" << mesh_.node_y()(i, j) << "\t" << 1 << "\n";
+            o << node_at('x', i, j) << "\t" << node_at('y', i, j) << "\t" << 1 << "\n";
 
     auto cell_avg = [&](int k, int i, int j) {
-        return 0.25 * (dv_(k, i, j) + dv_(k, i - 1, j) + dv_(k, i - 1, j - 1) +
-                       dv_(k, i, j - 1));
+        return 0.25 * (cell_at(k, i, j) + cell_at(k, i - 1, j) +
+                       cell_at(k, i - 1, j - 1) + cell_at(k, i, j - 1));
     };
 
     o << "POINT_DATA " << n_nodes << "\n";

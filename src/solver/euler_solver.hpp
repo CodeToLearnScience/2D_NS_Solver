@@ -25,6 +25,8 @@
 #include "mesh/mesh.hpp"
 #include "numerics/face_data.hpp"
 #include "numerics/schemes.hpp"
+#include "parallel/decomposition.hpp"
+#include "parallel/halo.hpp"
 #include "physics/dependent_variables.hpp"
 
 namespace ns::solver {
@@ -37,9 +39,18 @@ struct BoundarySegmentRuntime {
     std::optional<std::array<double, 4>> state;  // prescribed rho,u,v,p
 };
 
+struct FullGridMeta {
+    int nx = 0, ny = 0;
+    std::vector<double> node_x, node_y;  // (nx+1)*(ny+1), j-major rows
+};
+
 class EulerSolver {
 public:
+    /// Serial / single-patch construction.
     EulerSolver(const StructuredMesh& mesh, const config::Config& cfg);
+    /// MPI construction: local patch + decomposition + full-grid metadata.
+    EulerSolver(const StructuredMesh& local_mesh, const config::Config& cfg,
+                parallel::SlabDecomposition decomp, FullGridMeta meta);
 
     /// Runs the iteration loop; returns number of iterations performed.
     int run(int max_iterations);
@@ -68,6 +79,14 @@ public:
 
 private:
     void init_freestream();
+    void fill_meta_from_mesh();
+    void finish_init();
+    [[nodiscard]] bool is_root() const noexcept { return !mpi_mode_ || decomp_.rank == 0; }
+    /// Root-only: assembles a GLOBAL GHOST-FRAMED plane for field k:
+    /// size (nx+2)*(ny+2), entry (i,j) at [(i+1)*(ny+2)+(j+1)] covering
+    /// i,j in [-1..nx]/[-1..ny]. Exact byte parity with the serial dv_ view
+    /// at every sampled node-average location.
+    void gather_plane(int k, std::vector<double>& framed) const;
     [[nodiscard]] physics::TransportScaling scaling() const;
     void time_step_euler();
     void compute_fluxes();
@@ -83,6 +102,8 @@ private:
     void bc_prescribed_inflow(const BoundarySegmentRuntime& s);
     void bc_slip_wall(const BoundarySegmentRuntime& s);
     void transport_at(int i, int j);
+    [[nodiscard]] int decomp_offset() const;
+    [[nodiscard]] bool owns_rows(int glo, int ghi) const;
 
     const StructuredMesh& mesh_;
     const MeshMetrics metrics_;
@@ -108,6 +129,14 @@ private:
 
     double time_ = 0.0;
     int iter_done_ = 0;
+    parallel::SlabDecomposition decomp_{};
+    bool mpi_mode_ = false;
+    parallel::HaloExchange halo_{};
+    FullGridMeta meta_{};
+    /// Cached global ghost-framed planes from the last write_solution gather
+    /// (avoids a second MPI exchange for write_vtk).
+    mutable std::vector<double> cached_planes_[8];
+    mutable bool cached_valid_ = false;
     std::ofstream residue_;
     std::vector<BoundarySegmentRuntime> segments_;
 };

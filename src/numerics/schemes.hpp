@@ -10,6 +10,8 @@
 //   * the Mahalanobis entropy switch takes cp as a parameter -- legacy read
 //     the global Cp (= 1/((gamma-1)*M_inf^2) in ND runs)
 
+#include <limits>
+
 #include "fields/field.hpp"
 #include "mesh/mesh.hpp"
 #include "physics/eos.hpp"
@@ -39,12 +41,18 @@ namespace ns::numerics {
                                           double un_r, double p_l, double p_r,
                                           double ric, double e_max, double cp);
 
-/// Scheme 7: first-order NKFDS-MOVERS dissipation.
+/// Scans the legacy emax window ([0..nx] x [0..ny)) of total energy.
+double compute_emax_window(const StructuredMesh& mesh, const MultiField<double>& dv,
+                           const physics::IdealGas& eos);
+
+/// Scheme 7: first-order NKFDS-MOVERS dissipation. `emax_override` (NaN =
+/// scan locally) lets an MPI driver supply the global window maximum.
 void nkfds_movers_dissipation_first_order(const StructuredMesh& mesh,
                                           const MeshMetrics& metrics,
                                           const MultiField<double>& dv,
                                           const physics::IdealGas& eos, double cp,
-                                          MultiField<double>& diss);
+                                          MultiField<double>& diss,
+                                          double emax_override = std::numeric_limits<double>::quiet_NaN());
 
 /// Scheme 30: second-order NKFDS-MOVERS dissipation (Minmod MUSCL).
 void nkfds_movers_dissipation_second_order(const StructuredMesh& mesh,
@@ -53,7 +61,8 @@ void nkfds_movers_dissipation_second_order(const StructuredMesh& mesh,
                                            const MultiField<double>& dui,
                                            const MultiField<double>& duj,
                                            const physics::IdealGas& eos, double cp,
-                                           MultiField<double>& diss);
+                                           MultiField<double>& diss,
+                                           double emax_override = std::numeric_limits<double>::quiet_NaN());
 
 /// Scheme 24: two-wave Roe dissipation with Van Albada MUSCL reconstruction.
 void roe_dissipation_second_order(const StructuredMesh& mesh, const MeshMetrics& metrics,

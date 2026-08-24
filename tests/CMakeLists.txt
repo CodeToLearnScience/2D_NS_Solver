@@ -22,6 +22,7 @@ add_executable(ns_tests
     test_io.cpp
     test_physics.cpp
     test_numerics.cpp
+    test_parallel.cpp
 )
 target_include_directories(ns_tests PRIVATE "${CMAKE_SOURCE_DIR}/inc")
 target_link_libraries(ns_tests PRIVATE GTest::gtest_main ns_config ns_core)
@@ -33,3 +34,17 @@ endif()
 
 include(GoogleTest)
 gtest_discover_tests(ns_tests DISCOVERY_TIMEOUT 60)
+
+if(NS_ENABLE_MPI AND NS_MPI_INCLUDE_DIR)
+    add_executable(ns_mpi_tests test_mpi_halo.cpp)
+    target_include_directories(ns_mpi_tests PRIVATE "${CMAKE_SOURCE_DIR}/src")
+    target_link_libraries(ns_mpi_tests PRIVATE GTest::gtest ns_core)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(ns_mpi_tests PRIVATE -Wall -Wextra)
+    endif()
+    foreach(np 2 3)
+        add_test(NAME mpi_halo_np${np}
+                 COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${np}
+                         $<TARGET_FILE:ns_mpi_tests>)
+    endforeach()
+endif()

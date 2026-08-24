@@ -32,6 +32,14 @@ public:
     static std::expected<StructuredMesh, Error> load_legacy(
         const std::filesystem::path& file, int nx, int ny, int ng, double scaling = 1.0);
 
+    /// MPI helper: reads the full grid file but keeps only cell rows
+    /// [j0, j1) as the local interior; node rows outside
+    /// [max(0,j0-ng), min(ny_global-1, j1-1+ng)+1] are clamp-filled from the
+    /// nearest global row (ghost node coordinates never feed the kernels).
+    static std::expected<StructuredMesh, Error> load_legacy_slab(
+        const std::filesystem::path& file, int nx, int ny_global, int j0, int j1,
+        int ng, double scaling = 1.0);
+
     [[nodiscard]] int nx() const noexcept { return nx_; }
     [[nodiscard]] int ny() const noexcept { return ny_; }
     [[nodiscard]] int ng() const noexcept { return ng_; }

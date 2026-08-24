@@ -10,6 +10,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(NS_BUILD_TESTS "Build unit tests (Google Test)" ON)
+option(NS_ENABLE_MPI "Build the new stack with MPI (legacy target unaffected)" OFF)
 option(NS_ENABLE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 function(ns_default_warnings target)
@@ -60,7 +61,28 @@ ns_default_warnings(ns_solver)
 # ---------------------------------------------------------------------------
 # Core infrastructure (Phase 3): fields, mesh/metrics, IO.
 # ---------------------------------------------------------------------------
+if(NS_ENABLE_MPI)
+    # Direct probing instead of FindMPI: some distro runtimes ship without
+    # their -dev package, which makes FindMPI's own try_compile fail hard.
+    find_path(NS_MPI_INCLUDE_DIR mpi.h
+        HINTS /usr/include /usr/lib/x86_64-linux-gnu/openmpi/include
+              $ENV{HOME}/.local/mpi-compat/include)
+    find_library(NS_MPI_LIBRARY
+        NAMES mpi libmpi.so.40 libmpich.so
+        HINTS /usr/lib/x86_64-linux-gnu/openmpi/lib /usr/lib/x86_64-linux-gnu
+              $ENV{HOME}/.local/mpi-compat/lib)
+    if(NOT NS_MPI_INCLUDE_DIR OR NOT NS_MPI_LIBRARY)
+        message(FATAL_ERROR "NS_ENABLE_MPI=ON but mpi.h/libmpi was not found")
+    endif()
+    message(STATUS "MPI: ${NS_MPI_INCLUDE_DIR}/mpi.h, lib=${NS_MPI_LIBRARY}")
+    set(NS_MPI_MANUAL ON)
+    set(MPIEXEC_EXECUTABLE mpirun CACHE STRING "" FORCE)
+    set(MPIEXEC_NUMPROC_FLAG "-np" CACHE STRING "" FORCE)
+endif()
+
 add_library(ns_core STATIC
+    src/parallel/decomposition.cpp
+    src/parallel/halo.cpp
     src/mesh/mesh.cpp
     src/io/vtk.cpp
     src/io/restart.cpp
@@ -75,6 +97,15 @@ add_library(ns_core STATIC
 )
 target_include_directories(ns_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(ns_core PUBLIC cxx_std_23)
+if(NS_ENABLE_MPI)
+    target_compile_definitions(ns_core PUBLIC NS_WITH_MPI)
+    if(NS_MPI_MANUAL)
+        target_include_directories(ns_core SYSTEM PUBLIC "${NS_MPI_INCLUDE_DIR}")
+        target_link_libraries(ns_core PUBLIC "${NS_MPI_LIBRARY}")
+    else()
+        target_link_libraries(ns_core PUBLIC MPI::MPI_CXX)
+    endif()
+endif()
 ns_default_warnings(ns_core)
 
 # ---------------------------------------------------------------------------

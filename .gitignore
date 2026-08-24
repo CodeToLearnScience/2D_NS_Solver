@@ -25,3 +25,5 @@ build/
 regression/
 compile_commands.json
 input/generated_*.cfg
+build-mpi/
+build-mpi-g/
