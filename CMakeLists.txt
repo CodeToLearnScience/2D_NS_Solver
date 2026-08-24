@@ -53,6 +53,10 @@ add_executable(cfg2toml tools/cfg2toml/main.cpp)
 target_link_libraries(cfg2toml PRIVATE ns_config)
 ns_default_warnings(cfg2toml)
 
+add_executable(ns_solver src/apps/ns_solver.cpp)
+target_link_libraries(ns_solver PRIVATE ns_core ns_config)
+ns_default_warnings(ns_solver)
+
 # ---------------------------------------------------------------------------
 # Core infrastructure (Phase 3): fields, mesh/metrics, IO.
 # ---------------------------------------------------------------------------
@@ -67,6 +71,7 @@ add_library(ns_core STATIC
     src/numerics/face_data.cpp
     src/numerics/llf.cpp
     src/numerics/schemes.cpp
+    src/solver/euler_solver.cpp
 )
 target_include_directories(ns_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(ns_core PUBLIC cxx_std_23)

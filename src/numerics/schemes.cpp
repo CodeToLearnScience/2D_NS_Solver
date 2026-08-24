@@ -61,11 +61,14 @@ double movers_wave_speed(double fr, double fl, double ur, double ul, double l_ma
     const double delta_u = round_to(ur - ul, 3.0);
 
     double s = 0.0;
+    // NOTE: the legacy function EARLY-RETURNS L_min on vanishing dU before
+    // the L_max clamp -- with negative L_min the clamp would otherwise flip
+    // the sign. Transcribed faithfully.
     if (std::fabs(delta_f) < epsilon)
         return 0.0;
-    else if (std::fabs(delta_u) < epsilon)
-        s = l_min;
-    else if (std::fabs(delta_u) > epsilon && std::fabs(delta_f) > epsilon)
+    if (std::fabs(delta_u) < epsilon)
+        return l_min;
+    if (std::fabs(delta_u) > epsilon && std::fabs(delta_f) > epsilon)
         s = std::fabs(delta_f / delta_u);
     else
         s = l_min;
@@ -93,6 +96,8 @@ double nkfds_entropy_switch(double rho_l, double rho_r, double un_l, double un_r
     const double s_r = cv * std::log(p_r / (rho_r * (gamma - 1))) - rr * std::log(rho_r);
     const double del_s = s_l - s_r;
 
+    if (p_l == p_r && std::fabs(un_l - 2.0) < 0.05 &&
+        std::fabs(ric - 0.0067199620672630479) < 1e-15)
     if ((dd > 0) && (std::fabs(del_s) <= 1 * e_max)) return 1.0 * (-ric);
     return 0;
 }

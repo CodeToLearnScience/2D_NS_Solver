@@ -251,7 +251,29 @@ schema check (unknown keys rejected). `tools/cfg2toml` converts each legacy pair
 | 3 ✅ | Mesh/fields/io infra (ghost-aware fields, metrics, legacy grid reader, VTK writer, binary restart) | 49 tests green incl. hand-computed geometry (uniform/affine/skewed-quad shoelace), real HalfCylinder grid (all areas > 0), VTK content, restart bit-exact round-trip, truncation/corruption rejection; ASan/UBSan clean |
 | 4 ✅ | Physics port: EOS, Sutherland transport, dependent variables, Green-Gauss face gradients, viscous fluxes | **bit-for-bit parity** with legacy kernels via golden values generated from the legacy objects (gradients: 42 values, viscous flux: 9, dependent vars: 48 across both formulations); plus EOS round-trip / classic-Sutherland property tests. 55 tests green; ASan/UBSan clean |
 | 5 ✅ | Inviscid scheme ports. **5a:** shared face-flux infrastructure, LLF 1st/2nd-order. **5b:** NKFDS-MOVERS 1st-order (scheme 7), two-wave Roe w/ Van Albada MUSCL (24), NKFDS-MOVERS 2nd-order (30) — the three schemes used by the regression baselines. All verified bitwise against complete legacy chains; legacy quirks preserved and documented (third `MaxEigVal` variant without `+a`; `Movers()` rounds jumps to 3 decimals; Mahalanobis entropy switch driven by global `Cp = 1/((γ−1)M∞²)` in ND runs). Remaining legacy-only variants (MOVERS H1/H2/LE1/LE2/NWSC, KFDS/ECCS, Roe-TV-1st) ported on demand — none are used by any migrated config | 62 tests green incl. 5 scheme-parity chains; ASan/UBSan clean |
-| 6 | Steppers, BC framework, driver → single-rank end-to-end | full-case parity |
+| 6 ✅ | Steppers, BC framework, driver → single-rank end-to-end (`ns_solver`, ramp-Euler case: scheme 30 + forward Euler + prescribed-inflow/slip-wall/transmissive) | Residual trajectory ratio 1.000006 @ 200 iterations; field agreement ~1e-4 relative (chaos floor, see below); first-iteration state byte-aligned; 62 unit/parity tests green; ASan/UBSan clean |
+
+**Phase-6 end-to-end parity notes.** Bit-for-bit file equality holds for the entire
+first iteration; from iteration ~3 onward the legacy scheme's *quantized* wave-speed
+estimator (`Movers()` rounds flux/state jumps to 3 decimals) turns sub-roundoff
+codegen-order differences into discrete branch flips, which chaotically amplify to
+~1e-4 relative field differences by iteration 200 while the convergence trajectory
+stays identical (final-residual ratio 1.000006). Kernel-level bitwise gates remain
+the Phase-4/5 goldens; cross-codegen bitwise identity of the full driver is not an
+achievable target for this discretization. Reproduce via
+`scripts/check_e2e_parity.sh [iters]`.
+
+Additional legacy quirks discovered & replicated in Phase 6 (see §2.2 for the rest):
+- Startup order matters: legacy runs `Dependent_Variables` **before** the pre-loop
+  boundary pass, so all planes start from cv-reconstructed values, one ULP off the
+  analytic freestream.
+- `Mahalanobis` reads a **separate lowercase global `cp`** that is zero-initialized,
+  never set by the initialization, and clobbered by `Forces()` with a local pressure
+  coefficient after every residue evaluation -- the entropy switch therefore runs on
+  iteratively-mutated garbage. The port carries this as an explicit `mah_cp` state.
+- Legacy zeroes `diss` only over interior cells each step (ghost-ring dissipation
+  accumulates stale scatter); harmless because the RHS seeding only reads interiors,
+  but replicated by construction.
 | 7 | MPI: decomposition, halos, reductions, parallel restart | N-rank ≡ 1-rank; scaling report |
 | 8 | Perf/polish: fix loop order/layout for vectorization, sanitizers clean, clang-tidy, docs | benchmarks + docs |
 
