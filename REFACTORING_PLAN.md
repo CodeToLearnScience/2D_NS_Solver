@@ -83,6 +83,23 @@ Not-yet-reviewed: numerics inside `diss_roe*.cpp`, `diss_movers*`, `ECCS.cpp`, `
 (≈5,500 LOC). Deep review is deferred to Phase 5 where each scheme is ported against golden
 outputs rather than eyeballed.
 
+Additional legacy issues found while porting the physics (Phase 4), fixed by the rewrite:
+
+- `Flux_Viscous` leaks its `fv = new double[3]` scratch buffer on **every call**.
+- `Gradient_FaceI/J` close with scalar `delete fgx;` on `new double[3]` memory
+  (alloc/dealloc mismatch, UB; ASan flags it).
+- `Flux_Viscous` writes through the global `diss` pointer — the class of global-state
+  coupling this refactor removes.
+
+Parity methodology: a probe program is compiled against the legacy objects and prints
+`%.17g` outputs for `Dependent_Variables_One`, `Gradient_FaceI/J`, and `Flux_Viscous` on
+the RampGrid6020 geometry with a deterministic analytic field set. The values are checked in
+as `tests/goldens_physics.inc`; the new kernels must reproduce them exactly
+(`EXPECT_DOUBLE_EQ`). The transcription preserves legacy arithmetic order per element,
+including quirks such as the un-normalized top row of `gradfi` / right column of `gradfj`
+(never read by consumers) and the differing quarter-average orderings between the I and J
+gradient passes.
+
 ## 3. Target architecture
 
 ```
@@ -232,7 +249,7 @@ schema check (unknown keys rejected). `tools/cfg2toml` converts each legacy pair
 | 1 ✅ | CMake + GTest scaffolding + regression scripts | `ctest` green; goldens captured post-fix for ramp-Euler, Blasius-NS, hypercyl-80160 (200-iter smokes); compare tool idempotent |
 | 2 ✅ | TOML config loader + validator + cfg2toml tool; unit tests | 33/33 tests green; all 6 convertible legacy cases migrated to `configs/*.toml` via `scripts/migrate_configs.sh` and re-validated (4 known-incompatible inputs documented in §2.3) |
 | 3 ✅ | Mesh/fields/io infra (ghost-aware fields, metrics, legacy grid reader, VTK writer, binary restart) | 49 tests green incl. hand-computed geometry (uniform/affine/skewed-quad shoelace), real HalfCylinder grid (all areas > 0), VTK content, restart bit-exact round-trip, truncation/corruption rejection; ASan/UBSan clean |
-| 4 | Physics port (EOS, gradients, viscous fluxes) | matches legacy on synthetic fields |
+| 4 ✅ | Physics port: EOS, Sutherland transport, dependent variables, Green-Gauss face gradients, viscous fluxes | **bit-for-bit parity** with legacy kernels via golden values generated from the legacy objects (gradients: 42 values, viscous flux: 9, dependent vars: 48 across both formulations); plus EOS round-trip / classic-Sutherland property tests. 55 tests green; ASan/UBSan clean |
 | 5 | Inviscid schemes port (LLF → Roe → MOVERS/KFDS/ECCS) w/ deep review | per-scheme parity vs goldens |
 | 6 | Steppers, BC framework, driver → single-rank end-to-end | full-case parity |
 | 7 | MPI: decomposition, halos, reductions, parallel restart | N-rank ≡ 1-rank; scaling report |

@@ -60,6 +60,10 @@ add_library(ns_core STATIC
     src/mesh/mesh.cpp
     src/io/vtk.cpp
     src/io/restart.cpp
+    src/physics/transport.cpp
+    src/physics/dependent_variables.cpp
+    src/physics/gradients.cpp
+    src/physics/viscous_flux.cpp
 )
 target_include_directories(ns_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(ns_core PUBLIC cxx_std_23)
