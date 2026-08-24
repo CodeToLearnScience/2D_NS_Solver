@@ -64,6 +64,8 @@ add_library(ns_core STATIC
     src/physics/dependent_variables.cpp
     src/physics/gradients.cpp
     src/physics/viscous_flux.cpp
+    src/numerics/face_data.cpp
+    src/numerics/llf.cpp
 )
 target_include_directories(ns_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(ns_core PUBLIC cxx_std_23)
