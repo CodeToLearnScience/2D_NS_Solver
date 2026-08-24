@@ -117,9 +117,9 @@ T MinModLim(T U0, T U1, T U2, T dx) {
 
     Ur = (U2 - U1) / dx;
     Ul = (U1 - U0) / dx;
-    if ((fabs(Ur) < fabs(Ul)) and Ur * Ul > 0) return Ur;
-    else if ((fabs(Ul) < fabs(Ur)) and Ur * Ul > 0) return Ul;
-    else if (Ur * Ul <= 0) return 0.0;
+    if (Ur * Ul <= 0.0) return 0.0;
+    if (fabs(Ur) < fabs(Ul)) return Ur;
+    return Ul;
 }
 
 template<typename T>
@@ -228,23 +228,22 @@ T Min4(T a1, T a2, T a3, T a4) {
 
 template<typename T>
 T Log_Mean(T al, T ar) {
-    double xi, ln_xi, a_ln, f, u, eps = 0.01, F;
+    double xi, ln_xi, f, u, eps = 0.01, F;
 
     xi = al / ar;
-
-    ln_xi = 2.0 * ((1.0 - xi) / (1.0 + xi) + (1.0 / 3.0) * pow((1.0 - xi), 3) / pow((1.0 + xi), 3) +
-                   (1.0 / 5.0) * pow((1.0 - xi), 5) / pow((1.0 + xi), 5) +
-                   (1.0 / 7.0) * pow((1.0 - xi), 7) / pow((1.0 + xi), 7));
     f = (xi - 1.0) / (xi + 1.0);
-    a_ln = ((al + ar) / ln_xi) * ((xi - 1.0) / (xi + 1.0));
     u = f * f;
 
     if (u < eps) {
+        /*series approximation of 2*f/ln(xi), accurate for near-equal states*/
         F = 1.0 + u / 3.0 + u * u / 5.0 + u * u * u / 7.0;
         return (al + ar) / 2.0 * F;
     } else {
-        F = ln_xi / 2.0 / f;
-        return (al + ar) / 2.0 * F;
+        /*exact logarithmic mean; the previous expression inverted f/ln(xi)
+          and lost the sign, returning negative values whenever al/ar > ~1.1
+          or < ~0.9 outside the series range*/
+        ln_xi = std::log(xi);
+        return (al - ar) / ln_xi;
     }
 }
 
@@ -304,7 +303,13 @@ std::string get_str_between_two_str(const T s, const T start_delim,
                                     const T stop_delim){
     unsigned first_delim_pos = s.find(start_delim);
     unsigned end_pos_of_first_delim = first_delim_pos + start_delim.length();
-    unsigned last_delim_pos = s.find(stop_delim);
+    /*search the closing delimiter AFTER the opening one; searching from the
+      start returned the first occurrence again and yielded everything past
+      the opening delimiter instead of the text between them*/
+    unsigned last_delim_pos = s.find(stop_delim, end_pos_of_first_delim);
+
+    if (last_delim_pos == std::string::npos)
+        return s.substr(end_pos_of_first_delim);
 
     return s.substr(end_pos_of_first_delim,
                     last_delim_pos - end_pos_of_first_delim);

@@ -62,7 +62,7 @@ void ReadSolverInput(const std::string& SolverInputFile){
     infile>>inviscid_scheme;
     infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     if(inviscid_scheme==0) std::cout<<"using llf method"<<std::endl;
-    else if(time_accuracy==1) std::cout<<"using movers method"<<std::endl;
+    else if(inviscid_scheme==1) std::cout<<"using movers method"<<std::endl;
     else std::cout<<"using kfds method"<<std::endl;
     getline(infile, TitleLine);
     std::cout<<TitleLine<<std::endl;

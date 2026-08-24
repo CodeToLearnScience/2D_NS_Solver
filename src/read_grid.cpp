@@ -16,19 +16,12 @@ void Read_grid(std::string &grid_file, int Nx, int id1, int id2, int Ny, int jd1
               << "---------------------------------------------------------" << std::endl;
 
 
-    while (!infile.eof()) {
-        for (int j = 2; j <= jd1; j++) {
-            for (int i = 2; i <= id1; i++) {
+    for (int j = 2; j <= jd1; j++) {
+        for (int i = 2; i <= id1; i++) {
 
-                infile >> k >> x[i][j] >> y[i][j];
-                /*if(scaling_factor!=1){
-                    x[i][j]=x[i][j]*scaling_factor;
-                    y[i][j]=y[i][j]*scaling_factor;
-                }*/
-                //infile >> x[i][j] >> y[i][j];
-                //x[i][j]=x[i][j]/10.0;
-                //y[i][j]=y[i][j]/10.0;
-                //std::cout << k << "\t" << x[i][j] << "\t" << y[i][j] << std::endl;
+            if (!(infile >> k >> x[i][j] >> y[i][j])) {
+                std::cerr << "Read_grid: failed to read grid point at i=" << i << "\t" << "j=" << j << std::endl;
+                std::exit(1);
             }
         }
     }

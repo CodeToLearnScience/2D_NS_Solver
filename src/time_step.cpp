@@ -5,10 +5,9 @@ void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nco
                      double ***&dv, double **&area, double ***&si, double ***&sj, double **&tstep, double **&sri,
                      double **&srj, double ***&epsij) {
 
-    double rh, u, v, sx, sy, nx, ny, ds, vc, cs, tsmin, f1, f2, fac, dtv, srvi, srvj, reval, reval1, cflrat, ex, ey;
+    double rh, u, v, sx, sy, nx, ny, ds, vc, cs = 0.0, tsmin, f1, f2, fac, dtv, srvi, srvj, reval, reval1, cflrat,
+        ex, ey;
     const double cfac=2.0;
-
-    time_step == "global";
 
     for (int j = 0; j <= jd2; j++) {
         for (int i = 0; i <= id2; i++) {
@@ -29,7 +28,7 @@ void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nco
             ds = sqrt(sx * sx + sy * sy);
 
             nx = sx / ds;
-            ny = sx / ds;
+            ny = sy / ds;
             vc = u * nx + v * ny;
             sri[i][j] = (fabs(vc) + dv[5][i][j])*ds;
 
@@ -41,7 +40,7 @@ void Time_Step_Euler(int ib, int id1, int id2, int jb, int jd1, int jd2, int nco
             ds = sqrt(sx * sx + sy * sy);
 
             nx = sx / ds;
-            ny = sx / ds;
+            ny = sy / ds;
             vc = u * nx + v * ny;
             srj[i][j] = (fabs(vc) + dv[5][i][j])*ds;
 
@@ -161,10 +160,9 @@ void Time_Step_NS(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv,
                      double ***&dv, double **&area, double ***&si, double ***&sj, double **&tstep, double **&sri,
                      double **&srj, double ***&epsij) {
 
-    double rh, u, v, sx, sy, nx, ny, ds, vc, cs, tsmin, f1, f2, fac, dtv, srvi, srvj, reval, reval1, cflrat, ex, ey;
+    double rh, u, v, sx, sy, nx, ny, ds, vc, cs = 0.0, tsmin, f1, f2, fac, dtv, srvi, srvj, reval, reval1, cflrat,
+        ex, ey;
     const double cfac=2.0;
-
-    time_step == "global";
 
     for (int j = 0; j <= jd2; j++) {
         for (int i = 0; i <= id2; i++) {
@@ -185,7 +183,7 @@ void Time_Step_NS(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv,
             ds = sqrt(sx * sx + sy * sy);
 
             nx = sx / ds;
-            ny = sx / ds;
+            ny = sy / ds;
             vc = u * nx + v * ny;
             sri[i][j] = (fabs(vc) + dv[5][i][j])*ds;
 
@@ -205,7 +203,7 @@ void Time_Step_NS(int ib, int id1, int id2, int jb, int jd1, int jd2, int nconv,
             ds = sqrt(sx * sx + sy * sy);
 
             nx = sx / ds;
-            ny = sx / ds;
+            ny = sy / ds;
             vc = u * nx + v * ny;
             srj[i][j] = (fabs(vc) + dv[5][i][j])*ds;
 
