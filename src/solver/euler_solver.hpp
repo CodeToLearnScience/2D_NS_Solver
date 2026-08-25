@@ -128,6 +128,7 @@ private:
 
     MultiField<double> cv_, cvold_, dv_, diss_, rhs_, dui_, duj_;
     MultiField<double> gradfi_, gradfj_;
+    MultiField<double> cui_, cuj_;
     Field<double> tstep_;
     numerics::FaceFluxData ifaces_, jfaces_;
     physics::IdealGas eos_{};

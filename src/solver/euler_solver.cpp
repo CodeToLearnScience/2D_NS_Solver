@@ -83,8 +83,8 @@ EulerSolver::EulerSolver(const StructuredMesh& mesh, const config::Config& cfg)
       rhs_(4, mesh.nx(), mesh.ny(), 2),
       dui_(4, mesh.nx(), mesh.ny(), 2),
       duj_(4, mesh.nx(), mesh.ny(), 2),
-      gradfi_(6, mesh.nx() + 1, mesh_.ny() + 1, 2),
-      gradfj_(6, mesh_.nx() + 1, mesh_.ny() + 1, 2),
+      gradfi_(6, mesh.nx() + 1, mesh.ny() + 1, 2),
+      gradfj_(6, mesh.nx() + 1, mesh.ny() + 1, 2),
       tstep_(mesh.nx(), mesh.ny(), 2),
       ifaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
       jfaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
@@ -153,7 +153,7 @@ void EulerSolver::init_freestream() {
         rhoinf_ = cfg_.physics.p_inf / (rgas_ * cfg_.physics.t_inf);
         qinf_ = cfg_.physics.mach_inf *
                 std::sqrt(kGamma * rgas_ * cfg_.physics.t_inf);
-        cp_ = kGamma * rgas_ / kG1C;
+        cp_ = kGamma * rgas_ / (kGamma - 1.0);
         pinf_ = cfg_.physics.p_inf;
         tinf_ = cfg_.physics.t_inf;
         ref_visc_ = cfg_.physics.re_inf > 0
@@ -177,7 +177,7 @@ void EulerSolver::init_freestream() {
                 cv_(RHO,i,j)=rhoinf_;
                 cv_(U,i,j)=rhoinf_*uinf_;
                 cv_(V,i,j)=rhoinf_*vinf_;
-                cv_(E,i,j)=pinf_/kG1C+0.5*rhoinf_*(uinf_*uinf_+vinf_*vinf_);
+                cv_(E,i,j)=pinf_/0.4+0.5*rhoinf_*(uinf_*uinf_+vinf_*vinf_);
             }
         return;
     }
@@ -346,7 +346,7 @@ void EulerSolver::compute_fluxes() {
         case config::InviscidScheme::ECCS:
             eccs_dissipation(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
             break;
-        case config::InviscidScheme::NKFDS_MOVERS_NWSC:
+        case config::InviscidScheme::MOVERS_NWSC:
             movers_nwsc_dissipation(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
             break;
         default:
