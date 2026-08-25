@@ -14,9 +14,7 @@ if(NOT GTest_FOUND)
 endif()
 
 add_executable(ns_tests
-    test_math_utils.cpp
     test_config.cpp
-    test_legacy_import.cpp
     test_field.cpp
     test_mesh.cpp
     test_io.cpp

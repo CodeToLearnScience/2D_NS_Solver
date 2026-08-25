@@ -22,15 +22,6 @@ function(ns_default_warnings target)
         $<$<BOOL:${NS_ENABLE_WARNINGS_AS_ERRORS}>:-Werror>)
 endfunction()
 
-# ---------------------------------------------------------------------------
-# Legacy solver, frozen as the migration baseline (retired at end of Phase 7).
-# Built unchanged from src/ + inc/ so regression goldens stay reproducible.
-# ---------------------------------------------------------------------------
-file(GLOB NS_LEGACY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-add_executable(ns_legacy ${NS_LEGACY_SOURCES})
-target_include_directories(ns_legacy PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/inc")
-target_compile_options(ns_legacy PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall>)
-set_target_properties(ns_legacy PROPERTIES OUTPUT_NAME 2D_NS_Solver)
 
 # ---------------------------------------------------------------------------
 # Config layer (Phase 2): typed TOML config + legacy importer.
