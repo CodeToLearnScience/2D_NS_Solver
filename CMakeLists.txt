@@ -11,6 +11,9 @@ endif()
 
 option(NS_BUILD_TESTS "Build unit tests (Google Test)" ON)
 option(NS_ENABLE_MPI "Build the new stack with MPI (legacy target unaffected)" OFF)
+# WARNING: -march=native enables FMA contraction, which changes last-bit FP
+# results vs the parity baselines. Parity gates must run WITHOUT this flag.
+option(NS_ENABLE_NATIVE_ARCH "Tune for the build host (-march=native); alters last-bit FP results" OFF)
 option(NS_ENABLE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 function(ns_default_warnings target)
@@ -53,6 +56,10 @@ ns_default_warnings(ns_config)
 add_executable(cfg2toml tools/cfg2toml/main.cpp)
 target_link_libraries(cfg2toml PRIVATE ns_config)
 ns_default_warnings(cfg2toml)
+
+if(NS_ENABLE_NATIVE_ARCH AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-march=native)
+endif()
 
 add_executable(ns_solver src/apps/ns_solver.cpp)
 target_link_libraries(ns_solver PRIVATE ns_core ns_config)

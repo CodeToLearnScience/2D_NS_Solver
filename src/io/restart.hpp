@@ -37,6 +37,12 @@ using FieldSpan =
 [[nodiscard]] std::expected<void, Error> write_restart(
     const std::filesystem::path& path, int nx, int ny, int ng, FieldSpan fields);
 
+/// Values-based variant for gathered/global canvases (MPI root path): each
+/// vector holds the full (ni+2g)x(nj+2g) canvas in Field layout.
+[[nodiscard]] std::expected<void, Error> write_restart_values(
+    const std::filesystem::path& path, int nx, int ny, int ng,
+    std::span<const std::pair<std::string, std::vector<double>>> fields);
+
 [[nodiscard]] std::expected<RestartData, Error> read_restart(
     const std::filesystem::path& path);
 

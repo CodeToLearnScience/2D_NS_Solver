@@ -57,6 +57,30 @@ std::expected<void, Error> write_restart(const std::filesystem::path& path, int 
     return {};
 }
 
+
+std::expected<void, Error> write_restart_values(
+    const std::filesystem::path& path, int nx, int ny, int ng,
+    std::span<const std::pair<std::string, std::vector<double>>> fields) {
+    std::ofstream os(path, std::ios::binary);
+    if (!os) return std::unexpected(Error{std::format("cannot open '{}' for writing",
+                                                      path.string())});
+    os.write(kMagic, sizeof(kMagic));
+    bool ok = write_pod(os, kVersion) && write_pod(os, nx) && write_pod(os, ny) &&
+             write_pod(os, ng) && write_pod(os, static_cast<std::int32_t>(fields.size()));
+    if (!ok) return std::unexpected(Error{"failed writing restart header"});
+
+    for (const auto& [name, vec] : fields) {
+        const std::int32_t len = static_cast<std::int32_t>(name.size());
+        if (!write_pod(os, len)) return std::unexpected(Error{"failed writing field name"});
+        os.write(name.data(), name.size());
+        if (!os) return std::unexpected(Error{"failed writing restart payload"});
+        os.write(reinterpret_cast<const char*>(vec.data()),
+                 static_cast<std::streamsize>(vec.size() * sizeof(double)));
+        if (!os) return std::unexpected(Error{std::format("failed writing field '{}'", name)});
+    }
+    return {};
+}
+
 std::expected<RestartData, Error> read_restart(const std::filesystem::path& path) {
     std::ifstream is(path, std::ios::binary);
     if (!is) return std::unexpected(Error{std::format("cannot open '{}' for reading",

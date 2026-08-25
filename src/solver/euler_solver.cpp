@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "io/restart.hpp"
 #include "physics/eos.hpp"
 
 namespace ns::solver {
@@ -507,6 +508,19 @@ void EulerSolver::scale_rhs_and_update() {
             for (int k = 0; k < 4; ++k) rhs_(k, i, j) *= adtv;
         }
 
+    if (std::getenv("NS_DEBUG_PROGRESS")) {
+        double pmin = 1e300;
+        int pi_ = 0, pj_ = 0;
+        for (int j = 0; j < ny; ++j)
+            for (int i = 0; i < nx; ++i) {
+                const double pr = eos_.pressure(cv_(RHO, i, j), cv_(U, i, j),
+                                                cv_(V, i, j), cv_(E, i, j));
+                if (pr < pmin) { pmin = pr; pi_ = i; pj_ = j; }
+            }
+        std::fprintf(stderr, "[R%d pre-update minp=%.6g at (%d,%d)] cv@(0,0): %.6g %.6g %.6g %.6g\n",
+                     decomp_.rank, pmin, pi_, pj_,
+                     cv_(RHO,0,0), cv_(U,0,0), cv_(V,0,0), cv_(E,0,0));
+    }
     for (int j = 0; j < ny; ++j)
         for (int i = 0; i < nx; ++i) {
             for (int k = 0; k < 4; ++k)
@@ -720,7 +734,17 @@ int EulerSolver::run(int max_iterations) {
 #ifdef NS_WITH_MPI
         if (dbg) std::fprintf(stderr, "[R%d it%d flux]\n", decomp_.rank, iter);
 #endif
+        {
+#ifdef NS_WITH_MPI
+            if (std::getenv("NS_DEBUG_PROGRESS"))
+                std::fprintf(stderr, "[R%d it%d upd]\n", decomp_.rank, iter);
+#endif
+        }
         scale_rhs_and_update();
+#ifdef NS_WITH_MPI
+        if (std::getenv("NS_DEBUG_PROGRESS"))
+            std::fprintf(stderr, "[R%d it%d upd-done]\n", decomp_.rank, iter);
+#endif
         dependent_variables_all();
 #ifdef NS_WITH_MPI
         if (mpi_mode_) {
@@ -747,6 +771,11 @@ int EulerSolver::run(int max_iterations) {
 }
 
 void EulerSolver::gather_plane(int k, std::vector<double>& framed) const {
+    gather_plane_from(dv_, k, framed);
+}
+
+void EulerSolver::gather_plane_from(const MultiField<double>& src, int k,
+                                    std::vector<double>& framed) const {
     using parallel::SlabDecomposition;
     const bool gp_dbg = std::getenv("NS_DEBUG_PROGRESS") != nullptr;
     if (gp_dbg)
@@ -772,7 +801,7 @@ void EulerSolver::gather_plane(int k, std::vector<double>& framed) const {
             for (int a = 0; a < mesh_.nx() + 4; ++a)
                 for (int b = 0; b < nrows + 4; ++b)
                     buf[static_cast<std::size_t>(a) * (nrows + 4) + b] =
-                        dv_(k, a - 2, b - 2);
+                        src(k, a - 2, b - 2);
         };
         auto place = [&](int j0, int nrows, const std::vector<double>& buf) {
             for (int a = 0; a < mesh_.nx() + 4; ++a)
@@ -811,9 +840,123 @@ void EulerSolver::gather_plane(int k, std::vector<double>& framed) const {
     // serial: direct copy of the ghosted view restricted to [-1..nx][-1..ny]
     for (int i = -1; i <= nx; ++i)
         for (int j = -1; j <= ny; ++j)
-            framed[static_cast<std::size_t>(i + 1) * W + (j + 1)] = dv_(k, i, j);
+            framed[static_cast<std::size_t>(i + 1) * W + (j + 1)] = src(k, i, j);
     cached_planes_[k] = framed;
     cached_valid_ = true;
+}
+
+
+void EulerSolver::write_restart(const std::filesystem::path& path) const {
+    std::vector<std::vector<double>> framed(4);
+    for (int k = 0; k < 4; ++k) gather_plane_from(cv_, k, framed[k]);
+
+    if (!is_root()) return;  // only root owns the file
+
+    if (std::getenv("NS_DEBUG_PROGRESS"))
+        std::fprintf(stderr, "[WR root=%d]\n", static_cast<int>(is_root()));
+    static constexpr const char* kNames[4] = {"rho", "rhou", "rhov", "E"};
+    if (std::getenv("NS_DEBUG_PROGRESS"))
+        for (int k = 0; k < 4; ++k)
+            std::fprintf(stderr, "[WR k%d min=%.6g max=%.6g]\n", k,
+                         *std::min_element(framed[k].begin(), framed[k].end()),
+                         *std::max_element(framed[k].begin(), framed[k].end()));
+    std::vector<std::pair<std::string, std::vector<double>>> pairs;
+    for (int k = 0; k < 4; ++k) pairs.emplace_back(kNames[k], std::move(framed[k]));
+
+    // framed planes are (nx+2)x(ny+2): declare zero extra ghosts so the
+    // reader's canvas arithmetic matches byte-for-byte.
+    auto r = io::write_restart_values(path, meta_.nx + 2, meta_.ny + 2, 0, pairs);
+    if (!r) throw std::runtime_error(r.error().message);
+}
+
+void EulerSolver::load_restart(const std::filesystem::path& path) {
+#ifdef NS_WITH_MPI
+    const bool mpi = mpi_mode_;
+#else
+    constexpr bool mpi = false;
+#endif
+    io::RestartData data;
+    std::vector<double> sendbuf;
+
+    if (!mpi || is_root()) {
+        auto r = io::read_restart(path);
+        if (!r) throw std::runtime_error(r.error().message);
+        if (r->nx != mesh_.nx() + 2 || r->ny != meta_.ny + 2 || r->ng != 0)
+            throw std::runtime_error(std::format(
+                "restart dims {}x{} do not match case frame {}x{}", r->nx, r->ny,
+                mesh_.nx() + 2, meta_.ny + 2));
+        data = std::move(*r);
+        // strip ghost frames into a plane-major contiguous real-cell buffer:
+        // [plane k][i][j]
+        sendbuf.reserve(static_cast<std::size_t>(4) * mesh_.nx() * meta_.ny);
+        for (auto& f : data.fields)
+            for (int i = 0; i < mesh_.nx(); ++i)
+                for (int j = 0; j < meta_.ny; ++j)
+                    sendbuf.push_back(f.values[static_cast<std::size_t>(i + 1) *
+                                                   (meta_.ny + 2) +
+                                               (j + 1)]);
+    }
+
+    const std::size_t plane_size =
+        static_cast<std::size_t>(mesh_.nx()) * mesh_.ny();
+
+    for (int k = 0; k < 4; ++k) {
+        std::vector<double> local(plane_size);
+#ifdef NS_WITH_MPI
+        if (mpi) {
+            std::vector<int> counts(decomp_.nranks), displs(decomp_.nranks);
+            int off = 0;
+            for (int r = 0; r < decomp_.nranks; ++r) {
+                auto d = parallel::SlabDecomposition::make(decomp_.ny_global,
+                                                           decomp_.nranks, r);
+                counts[r] = mesh_.nx() * d.ny_local();
+                displs[r] = off;
+                off += counts[r];
+            }
+            // sendbuf planes are laid out over the GLOBAL row count
+            const std::size_t plane_off =
+                static_cast<std::size_t>(k) * mesh_.nx() * meta_.ny;
+            MPI_Scatterv(is_root() ? sendbuf.data() + plane_off : nullptr,
+                         counts.data(), displs.data(), MPI_DOUBLE, local.data(),
+                         static_cast<int>(local.size()), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        if (std::getenv("NS_DEBUG_PROGRESS"))
+            std::fprintf(stderr, "[SCAT r%d k%d first=%g %g]\n",
+                         decomp_.rank, k, local[0], local[1]);
+        } else
+#endif
+        {
+            const io::RestartField& f = data.fields[static_cast<std::size_t>(k)];
+            for (int i = 0; i < mesh_.nx(); ++i)
+                for (int j = 0; j < meta_.ny; ++j)
+                    local[static_cast<std::size_t>(i) * mesh_.ny() + j] =
+                        f.values[static_cast<std::size_t>(i + 1) * (meta_.ny + 2) +
+                                 (j + 1)];
+        }
+        for (int i = 0; i < mesh_.nx(); ++i)
+            for (int j = 0; j < mesh_.ny(); ++j)
+                cv_(k, i, j) = local[static_cast<std::size_t>(i) * mesh_.ny() + j];
+    }
+
+    if (std::getenv("NS_DEBUG_PROGRESS")) {
+        double pmin = 1e300;
+        int pi_ = 0, pj_ = 0;
+        for (int j = 0; j < mesh_.ny(); ++j)
+            for (int i = 0; i < mesh_.nx(); ++i) {
+                const double pr = eos_.pressure(cv_(RHO, i, j), cv_(U, i, j),
+                                                cv_(V, i, j), cv_(E, i, j));
+                if (pr < pmin) { pmin = pr; pi_ = i; pj_ = j; }
+            }
+        std::fprintf(stderr, "[LOAD r%d minp=%.6g at (%d,%d)] cv00=%.3g %.3g %.3g %.3g\n",
+                     decomp_.rank, pmin, pi_, pj_,
+                     cv_(RHO,0,0), cv_(U,0,0), cv_(V,0,0), cv_(E,0,0));
+    }
+
+    // mirror finish_init tail: reconstruct everything downstream of cv
+    dependent_variables_all();
+#ifdef NS_WITH_MPI
+    if (mpi_mode_) halo_.exchange(dv_);
+#endif
+    apply_boundaries();
 }
 
 void EulerSolver::open_residue(const std::filesystem::path& path) {

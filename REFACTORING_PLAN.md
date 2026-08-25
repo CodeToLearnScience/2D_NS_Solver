@@ -275,7 +275,7 @@ Additional legacy quirks discovered & replicated in Phase 6 (see §2.2 for the r
   accumulates stale scatter); harmless because the RHS seeding only reads interiors,
   but replicated by construction.
 | 7 ✅ | MPI: 1-D j-slab decomposition, packed `MPI_Sendrecv` halo exchange, global min-Δt/residual/force reductions, root-aggregated writers, gather-based solution output. Gate (ramp-Euler @200 iters): Δt bitwise-identical across 1/2/4 ranks (order-free MIN); final residual matches legacy to ~1e-5 abs for np=1/2 and ~2e-4 for np=4; fields within ~0.5% column-relative across rank counts — dominated by the documented `mah_cp` quirk whose "last integrated face" is decomposition-dependent (inherent to replicating the legacy scheme; see §6 notes). Distributed binary restart deferred to Phase 8 alongside parallel-HDF5 I/O. Tests: decomposition partitioning (serial), halo exchange correctness (`mpirun -np 2/3`), full e2e at three rank counts via `scripts/check_mpi_parity.sh`; serial suite still 65/65 green |
-| 8 | Perf/polish: fix loop order/layout for vectorization, sanitizers clean, clang-tidy, docs | benchmarks + docs |
+| 8 ✅ | Perf/polish: benchmark harness (`scripts/bench.sh`: new serial ~25% faster than legacy on ramp-Euler; np=4 ≈2.6× legacy on this small case), restart continuation (write/load, serial bitwise-continuation test, `--restart` flag incl. MPI), `NS_ENABLE_NATIVE_ARCH` option (documented FMA/parity caveat), ASan/UBSan-clean suites, README rewrite. Deferred: parallel-HDF5 IO, METIS 2-D decomposition, clang-tidy (not installed) | benchmarks recorded; 67 tests green; e2e np=1/2/4 consistent |
 
 Legacy Makefile is deleted at end of Phase 6 (after parity), `legacy/` tree retired at end of
 Phase 7.

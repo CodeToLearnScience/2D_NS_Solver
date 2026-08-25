@@ -34,10 +34,10 @@ int main(int argc, char** argv) {
 
     int rc = 0;
     try {
-        if (argc < 4 || argc > 5) {
+        if (argc < 4 || argc > 7) {
             if (rank == 0)
                 std::cerr << "usage: ns_solver <config.toml> <grid.dat> <out-dir> "
-                             "[max-iters]\n";
+                             "[max-iters] [--restart <file>]\n";
             return 2;
         }
 
@@ -74,10 +74,19 @@ int main(int argc, char** argv) {
         const std::filesystem::path out_dir = argv[3];
         if (rank == 0) std::filesystem::create_directories(out_dir);
 
-        const int max_iters =
-            (argc == 5) ? std::stoi(argv[4]) : cfg->run.max_iterations;
+        int max_iters = cfg->run.max_iterations;
+        std::string restart_file;
+        for (int a = 4; a < argc; ++a) {
+            const std::string arg = argv[a];
+            if (arg == "--restart" && a + 1 < argc) restart_file = argv[++a];
+            else max_iters = std::stoi(arg);
+        }
 
         ns::solver::EulerSolver solver(*local, *cfg, decomp, std::move(meta));
+        if (!restart_file.empty()) {
+            solver.load_restart(restart_file);
+            if (rank == 0) std::cout << "restarted from " << restart_file << "\n";
+        }
         if (rank == 0) {
             const std::string residue_name = "Residue_" + cfg->case_name +
                                              std::to_string(cfg->grid.nx) + "_" +

@@ -23,6 +23,7 @@ add_executable(ns_tests
     test_physics.cpp
     test_numerics.cpp
     test_parallel.cpp
+    test_restart.cpp
 )
 target_include_directories(ns_tests PRIVATE "${CMAKE_SOURCE_DIR}/inc")
 target_link_libraries(ns_tests PRIVATE GTest::gtest_main ns_config ns_core)

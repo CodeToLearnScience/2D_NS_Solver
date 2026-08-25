@@ -60,6 +60,13 @@ public:
     void write_solution(const std::filesystem::path& path) const;
     void write_vtk(const std::filesystem::path& path) const;
 
+    /// Root writes a global ghost-framed restart (all 8 dv planes + cv).
+    void write_restart(const std::filesystem::path& path) const;
+    /// Reads a restart written by write_restart and reinitializes local state
+    /// (cv interior from file, then dep-vars + halo + boundaries). Call
+    /// instead of relying on the freestream initialization.
+    void load_restart(const std::filesystem::path& path);
+
     [[nodiscard]] const MultiField<double>& conserved() const noexcept { return cv_; }
     [[nodiscard]] const MultiField<double>& primitives() const noexcept { return dv_; }
     // TEMPORARY debug hooks (removed once Phase-6 parity lands)
@@ -87,6 +94,8 @@ private:
     /// i,j in [-1..nx]/[-1..ny]. Exact byte parity with the serial dv_ view
     /// at every sampled node-average location.
     void gather_plane(int k, std::vector<double>& framed) const;
+    void gather_plane_from(const MultiField<double>& src, int k,
+                           std::vector<double>& framed) const;
     [[nodiscard]] physics::TransportScaling scaling() const;
     void time_step_euler();
     void compute_fluxes();
@@ -105,7 +114,7 @@ private:
     [[nodiscard]] int decomp_offset() const;
     [[nodiscard]] bool owns_rows(int glo, int ghi) const;
 
-    const StructuredMesh& mesh_;
+    StructuredMesh mesh_;
     const MeshMetrics metrics_;
     const config::Config cfg_;
 
