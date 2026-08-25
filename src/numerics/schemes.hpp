@@ -65,6 +65,53 @@ void nkfds_movers_dissipation_second_order(const StructuredMesh& mesh,
                                            double emax_override = std::numeric_limits<double>::quiet_NaN());
 
 /// Scheme 24: two-wave Roe dissipation with Van Albada MUSCL reconstruction.
+///
+/// Batch A additions (Phase 9). Each preserves its own legacy wave-speed /
+/// eigenvalue variant exactly. H1 and LE1 fix a legacy bug where pressure was
+/// read from dv[0] (density) and sound speed from dv[2] (v-velocity);
+/// bitwise parity with legacy is therefore NOT attempted for those two —
+/// they are validated via free-stream preservation and analytic-face tests.
+
+/// Legacy Movers() variant from diss_movers.cpp (scheme 1): exact Ur!=Ul
+/// comparison, no epsilon, no rounding.
+[[nodiscard]] double movers_plain_wave_speed(double fr, double fl, double ur,
+                                             double ul, double l_max, double l_min);
+
+/// Legacy Movers() variant from diss_movers_h1.cpp (eps = 1e-10).
+[[nodiscard]] double movers_h1_wave_speed(double fr, double fl, double ur,
+                                          double ul, double l_max, double l_min);
+
+/// Legacy Movers() variant from diss_movers_le1.cpp (eps = 1e-4).
+[[nodiscard]] double movers_le1_wave_speed(double fr, double fl, double ur,
+                                           double ul, double l_max, double l_min);
+
+/// Scheme 1: MOVERS with Minmod-MUSCL reconstruction; single wave speed
+/// evaluated from the energy-component flux/state jumps, applied to all k.
+void movers_dissipation_muscl(const StructuredMesh& mesh,
+                              const MeshMetrics& metrics,
+                              const MultiField<double>& dv,
+                              const MultiField<double>& dui,
+                              const MultiField<double>& duj,
+                              const physics::IdealGas& eos,
+                              MultiField<double>& diss);
+
+/// Scheme 2: MOVERS-H1 — first-order, per-component Movers wave speed plus
+/// beta*phi*max_eig extra dissipation (beta=0.2 pressure-switch).
+void movers_h1_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                           const MultiField<double>& dv, const physics::IdealGas& eos,
+                           MultiField<double>& diss);
+
+/// Scheme 3: MOVERS-LE1 — first-order, per-component Movers blended toward
+/// max(|Vn|) by conserved-difference MinMod weighting.
+void movers_le1_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                            const MultiField<double>& cv, const MultiField<double>& dv,
+                            const MultiField<double>& cui, const MultiField<double>& cuj,
+                            const physics::IdealGas& eos, MultiField<double>& diss);
+
+/// Conserved-variable differences (legacy Conv_Variables_Differences): same
+/// stencil pattern as primitive_differences but on cv planes.
+void conserved_differences(const MultiField<double>& cv, MultiField<double>& cui,
+                           MultiField<double>& cuj);
 void roe_dissipation_second_order(const StructuredMesh& mesh, const MeshMetrics& metrics,
                                   const MultiField<double>& dv,
                                   const MultiField<double>& dui,

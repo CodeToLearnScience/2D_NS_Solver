@@ -580,4 +580,69 @@ void roe_dissipation_second_order(const StructuredMesh& mesh, const MeshMetrics&
     }
 }
 
+void conserved_differences(const MultiField<double>& cv, MultiField<double>& cui,
+                           MultiField<double>& cuj) {
+    constexpr int planes = 4;
+    const int ng = cv.ng();
+    for (int j = 0; j < cv.nj(); ++j) {
+        for (int i = 1 - ng; i < cv.ni() + ng; ++i)
+            for (int k = 0; k < planes; ++k)
+                cui(k, i, j) = cv(k, i, j) - cv(k, i - 1, j);
+        for (int k = 0; k < planes; ++k) cui(k, -ng, j) = cui(k, 1 - ng, j);
+    }
+    for (int i = 0; i < cv.ni(); ++i) {
+        for (int j = 1 - ng; j < cv.nj() + ng; ++j)
+            for (int k = 0; k < planes; ++k)
+                cuj(k, i, j) = cv(k, i, j) - cv(k, i, j - 1);
+        for (int k = 0; k < planes; ++k) cuj(k, i, -ng) = cuj(k, i, 1 - ng);
+    }
+}
+
+double movers_plain_wave_speed(double fr, double fl, double ur, double ul,
+                               double l_max, double l_min) {
+    double s = 0.0;
+    if (ur != ul)
+        s = std::fabs((fr - fl) / (ur - ul));
+    else
+        s = l_min;
+    if (std::fabs(s) >= l_max) return l_max;
+    if (std::fabs(s) <= l_min) return l_min;
+    return s;
+}
+
+double movers_h1_wave_speed(double fr, double fl, double ur, double ul,
+                            double l_max, double l_min) {
+    constexpr double epsilon = 1e-10;
+    double s;
+    if (std::fabs(ur - ul) > epsilon && std::fabs(fr - fl) > epsilon)
+        s = std::fabs((fr - fl) / (ur - ul));
+    else if (std::fabs(fr - fl) < epsilon)
+        return 0.0;
+    else if (std::fabs(ur - ul) < epsilon)
+        return l_min;
+    else
+        s = l_min;
+
+    if (s >= l_max) return l_max;
+    if (s <= l_min) return l_min;
+    return s;
+}
+
+double movers_le1_wave_speed(double fr, double fl, double ur, double ul,
+                             double l_max, double l_min) {
+    constexpr double epsilon = 1e-4;
+    if (std::fabs(fr - fl) < epsilon) return 0.0;
+    if (std::fabs(ur - ul) < epsilon) return l_min;
+    double s;
+    if (std::fabs(ur - ul) > epsilon && std::fabs(fr - fl) > epsilon)
+        s = std::fabs((fr - fl) / (ur - ul));
+    else
+        s = l_min;
+
+    if (s < epsilon) return 0.0;
+    if (s >= l_max) return l_max;
+    if (s <= l_min) return l_min;
+    return s;
+}
+
 }  // namespace ns::numerics

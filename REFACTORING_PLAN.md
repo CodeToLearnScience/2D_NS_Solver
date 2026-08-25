@@ -277,8 +277,22 @@ Additional legacy quirks discovered & replicated in Phase 6 (see §2.2 for the r
 | 7 ✅ | MPI: 1-D j-slab decomposition, packed `MPI_Sendrecv` halo exchange, global min-Δt/residual/force reductions, root-aggregated writers, gather-based solution output. Gate (ramp-Euler @200 iters): Δt bitwise-identical across 1/2/4 ranks (order-free MIN); final residual matches legacy to ~1e-5 abs for np=1/2 and ~2e-4 for np=4; fields within ~0.5% column-relative across rank counts — dominated by the documented `mah_cp` quirk whose "last integrated face" is decomposition-dependent (inherent to replicating the legacy scheme; see §6 notes). Distributed binary restart deferred to Phase 8 alongside parallel-HDF5 I/O. Tests: decomposition partitioning (serial), halo exchange correctness (`mpirun -np 2/3`), full e2e at three rank counts via `scripts/check_mpi_parity.sh`; serial suite still 65/65 green |
 | 8 ✅ | Perf/polish: benchmark harness (`scripts/bench.sh`: new serial ~25% faster than legacy on ramp-Euler; np=4 ≈2.6× legacy on this small case), restart continuation (write/load, serial bitwise-continuation test, `--restart` flag incl. MPI), `NS_ENABLE_NATIVE_ARCH` option (documented FMA/parity caveat), ASan/UBSan-clean suites, README rewrite. Deferred: parallel-HDF5 IO, METIS 2-D decomposition, clang-tidy (not installed) | benchmarks recorded; 67 tests green; e2e np=1/2/4 consistent |
 
-Legacy Makefile is deleted at end of Phase 6 (after parity), `legacy/` tree retired at end of
-Phase 7.
+## 8.1 Completion & cutover plan (Phases 9–11)
+
+User decision: **port everything** (option a); fill legacy gaps with correct implementations;
+physical removal of the legacy tree after validation (recoverable via git history). Modern-
+ization freedom granted — physics correctness is the bar, not exact transcription.
+
+| Phase | Scope | Gate |
+|---|---|---|
+| 9 | **Coverage completion.** Remaining inviscid schemes ported under golden parity: MOVERS(1)/H1(2)/LE1(3) [Batch A], ROE-TV(5)+KFDS(6) [B], MOVERS-H2(22)/LE2(23)/ROE-TV-2O(25)/KFDS-2O(26) [C], ECCS(27)/MOVERS-NWSC(29) [D]. **Gap fills:** scheme-21 (2nd-order H2 combination) implemented properly; entropy-switch `cp` defect fixed (physically consistent heat-capacity model replaces the Forces()-clobbered global; documented trajectory shift). **Driver completion:** viscous chain wired for NS, dimensional formulation, no-slip adiabatic/isothermal walls + characteristic far-field + cut BCs, real SSPRK2/SSPRK3 steppers, unsteady stop-on-total_time, surface/forces writer | all six migrated configs e2e serial+MPI ≥100 iters; bitwise goldens per batch; Blasius-NS residue/surface vs frozen baselines |
+| 10 | **Physics verification suite** (legacy-independent): Sod & Lax shock tubes (L1 errors, discontinuity positions), isentropic vortex, order verification (~1st/~2nd), flat-plate skin friction vs Cf≈0.664/√Reₓ, free-stream preservation across every registered scheme | physics suite green; convergence orders within tolerance |
+| 11 | **Golden freeze → validation → deletion.** Regenerate & commit all goldens/baselines (incl. surface outputs) before removal; feature-parity sweep (every convertible input has TOML coverage); cutover checklist (configs e2e np=1/2/4 · suite green · sanitizers clean · trajectories within floors); delete legacy `.cpp` bodies, `inc/`, `Makefile`, `ns_legacy` target, Riemann driver, obsolete `input/*.cfg`+`GridTop*.dat` (grids kept); docs rewrite | checklist complete; working tree contains only modern stack |
+
+Post-cutover policy: frozen bitwise goldens become tolerance-based regression pins; the
+physics suite is the primary correctness net. Upstream-dead code (`Diss_MOVERS2_Prim`,
+`Diss_ZB2`, scheme-21 stub, second conflicting `Diss_Roe1`) is not ported; config
+validation rejects those enums with clear errors.
 
 ## 9. Dependencies
 
