@@ -100,6 +100,10 @@ add_library(ns_core STATIC
     src/numerics/face_data.cpp
     src/numerics/llf.cpp
     src/numerics/schemes.cpp
+    src/numerics/schemes_batch_a.cpp
+    src/numerics/schemes_batch_b.cpp
+    src/numerics/schemes_batch_c.cpp
+    src/numerics/schemes_batch_d.cpp
     src/solver/euler_solver.cpp
 )
 target_include_directories(ns_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
