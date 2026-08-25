@@ -123,6 +123,40 @@ void kfds_dissipation_first_order(const StructuredMesh& mesh,
                                   const physics::IdealGas& eos,
                                   MultiField<double>& diss);
 
+/// Scheme 22: MOVERS-H2 — Venki MUSCL + per-component Movers + beta*phi.
+void movers_h2_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                           const MultiField<double>& dv,
+                           const MultiField<double>& dui,
+                           const MultiField<double>& duj, double dx_grid,
+                           double dy_grid, const physics::IdealGas& eos,
+                           MultiField<double>& diss);
+
+/// Scheme 23: MOVERS-LE2 — Minmod MUSCL + LE1 blend toward max(|Vn|).
+void movers_le2_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                            const MultiField<double>& cv,
+                            const MultiField<double>& dv,
+                            const MultiField<double>& cui, const MultiField<double>& cuj,
+                            const MultiField<double>& dui, const MultiField<double>& duj,
+                            const physics::IdealGas& eos,
+                            MultiField<double>& diss);
+
+/// Scheme 25: ROE-TV-2O — VanAlbada MUSCL + Roe TVD beta-split eigenvalues.
+void roe_tv_2o_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                           const MultiField<double>& dv,
+                           const MultiField<double>& dui,
+                           const MultiField<double>& duj,
+                           const physics::IdealGas& eos,
+                           MultiField<double>& diss);
+
+/// Scheme 26: KFDS-2O — algorithmically identical to KFDS-1O.
+void kfds_dissipation_second_order(const StructuredMesh& mesh,
+                                   const MeshMetrics& metrics,
+                                   const MultiField<double>& dv,
+                                   const numerics::FaceFluxData& ifaces,
+                                   const numerics::FaceFluxData& jfaces,
+                                   const physics::IdealGas& eos,
+                                   MultiField<double>& diss);
+
 /// Conserved-variable differences (legacy Conv_Variables_Differences): same
 /// stencil pattern as primitive_differences but on cv planes.
 void conserved_differences(const MultiField<double>& cv, MultiField<double>& cui,

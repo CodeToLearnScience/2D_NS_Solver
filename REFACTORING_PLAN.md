@@ -279,13 +279,19 @@ Additional legacy quirks discovered & replicated in Phase 6 (see §2.2 for the r
 
 ## 8.1 Completion & cutover plan (Phases 9–11)
 
+**Progress**: Batches A (MOVERS/H1/LE1) and B (ROE-TV/KFDS) committed and free-stream
+verified. Batch C started — H2/LE2 use Venki/Minmod limiters respectively, both have the
+dv[0]-for-pressure legacy bug (fix same as H1/LE1); ROE-TV-2O uses VanAlbada MUSCL with the
+beta-split eigenvalues; KFDS-2O operates on face data like KFDS-1O. All four fit the proven
+per-batch pattern: read → transcribe → probe goldens → test → commit.
+
 User decision: **port everything** (option a); fill legacy gaps with correct implementations;
 physical removal of the legacy tree after validation (recoverable via git history). Modern-
 ization freedom granted — physics correctness is the bar, not exact transcription.
 
 | Phase | Scope | Gate |
 |---|---|---|
-| 9 | **Coverage completion.** Remaining inviscid schemes ported under golden parity: MOVERS(1)/H1(2)/LE1(3) [Batch A], ROE-TV(5)+KFDS(6) [B], MOVERS-H2(22)/LE2(23)/ROE-TV-2O(25)/KFDS-2O(26) [C], ECCS(27)/MOVERS-NWSC(29) [D]. **Gap fills:** scheme-21 (2nd-order H2 combination) implemented properly; entropy-switch `cp` defect fixed (physically consistent heat-capacity model replaces the Forces()-clobbered global; documented trajectory shift). **Driver completion:** viscous chain wired for NS, dimensional formulation, no-slip adiabatic/isothermal walls + characteristic far-field + cut BCs, real SSPRK2/SSPRK3 steppers, unsteady stop-on-total_time, surface/forces writer | all six migrated configs e2e serial+MPI ≥100 iters; bitwise goldens per batch; Blasius-NS residue/surface vs frozen baselines |
+| 9 🔶 | **Coverage completion.** Remaining inviscid schemes ported under golden parity: MOVERS(1)/H1(2)/LE1(3) [Batch A], ROE-TV(5)+KFDS(6) [B], MOVERS-H2(22)/LE2(23)/ROE-TV-2O(25)/KFDS-2O(26) [C], ECCS(27)/MOVERS-NWSC(29) [D]. **Gap fills:** scheme-21 (2nd-order H2 combination) implemented properly; entropy-switch `cp` defect fixed (physically consistent heat-capacity model replaces the Forces()-clobbered global; documented trajectory shift). **Driver completion:** viscous chain wired for NS, dimensional formulation, no-slip adiabatic/isothermal walls + characteristic far-field + cut BCs, real SSPRK2/SSPRK3 steppers, unsteady stop-on-total_time, surface/forces writer | all six migrated configs e2e serial+MPI ≥100 iters; bitwise goldens per batch; Blasius-NS residue/surface vs frozen baselines |
 | 10 | **Physics verification suite** (legacy-independent): Sod & Lax shock tubes (L1 errors, discontinuity positions), isentropic vortex, order verification (~1st/~2nd), flat-plate skin friction vs Cf≈0.664/√Reₓ, free-stream preservation across every registered scheme | physics suite green; convergence orders within tolerance |
 | 11 | **Golden freeze → validation → deletion.** Regenerate & commit all goldens/baselines (incl. surface outputs) before removal; feature-parity sweep (every convertible input has TOML coverage); cutover checklist (configs e2e np=1/2/4 · suite green · sanitizers clean · trajectories within floors); delete legacy `.cpp` bodies, `inc/`, `Makefile`, `ns_legacy` target, Riemann driver, obsolete `input/*.cfg`+`GridTop*.dat` (grids kept); docs rewrite | checklist complete; working tree contains only modern stack |
 
