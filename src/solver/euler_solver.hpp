@@ -103,6 +103,8 @@ private:
     void apply_segment(const BoundarySegmentRuntime& seg);
     void update_corners();
     void scale_rhs_and_update();
+    void scale_rhs_only();
+    void ssprk_blend(double ark, double brk);
     void residue_and_forces(int iter, double dt);
     void dependent_variables_all();
     void compute_viscous_chain();
@@ -145,6 +147,7 @@ private:
 
     double time_ = 0.0;
     int iter_done_ = 0;
+    bool converged_ = false;
     parallel::SlabDecomposition decomp_{};
     bool mpi_mode_ = false;
     parallel::HaloExchange halo_{};

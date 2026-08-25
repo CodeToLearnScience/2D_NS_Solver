@@ -147,7 +147,42 @@ void EulerSolver::finish_init() {
 }
 
 void EulerSolver::init_freestream() {
-    // Legacy InitFlowNonDimensional, Euler branch.
+    if (cfg_.formulation == config::Formulation::Dimensional) {
+        // Legacy InitFlowDimensional.
+        rgas_ = cfg_.physics.gas_constant > 0 ? cfg_.physics.gas_constant : 287.0;
+        rhoinf_ = cfg_.physics.p_inf / (rgas_ * cfg_.physics.t_inf);
+        qinf_ = cfg_.physics.mach_inf *
+                std::sqrt(kGamma * rgas_ * cfg_.physics.t_inf);
+        cp_ = kGamma * rgas_ / kG1C;
+        pinf_ = cfg_.physics.p_inf;
+        tinf_ = cfg_.physics.t_inf;
+        ref_visc_ = cfg_.physics.re_inf > 0
+                        ? 1.458e-6 * std::pow(tinf_, 1.5) / (tinf_ + kSuthS)
+                        : 0.0;
+        alpha_rad_ = cfg_.physics.alpha_deg / (180.0 / (4.0 * std::atan(1.0)));
+        uinf_ = qinf_ * std::cos(alpha_rad_);
+        vinf_ = qinf_ * std::sin(alpha_rad_);
+        eos_.gas_constant = rgas_;
+
+        const int ng = cv_.ng();
+        const double c_ratio = kSuthS / kSuthT0;
+        for (int i = -ng; i < cv_.ni() + ng; ++i)
+            for (int j = -ng; j < cv_.nj() + ng; ++j) {
+                dv_(RHO,i,j)=rhoinf_; dv_(U,i,j)=uinf_; dv_(V,i,j)=vinf_;
+                dv_(P,i,j)=pinf_; dv_(T,i,j)=tinf_;
+                dv_(A,i,j)=std::sqrt(kGamma*pinf_/rhoinf_);
+                dv_(MU,i,j)=((kSuthT0+kSuthS)/(kSuthS+tinf_))*
+                             std::pow(tinf_/kSuthT0,1.5)*ref_visc_;
+                dv_(K,i,j)=dv_(MU,i,j)*cp_/kPr;
+                cv_(RHO,i,j)=rhoinf_;
+                cv_(U,i,j)=rhoinf_*uinf_;
+                cv_(V,i,j)=rhoinf_*vinf_;
+                cv_(E,i,j)=pinf_/kG1C+0.5*rhoinf_*(uinf_*uinf_+vinf_*vinf_);
+            }
+        return;
+    }
+
+    // Nondimensional (legacy InitFlowNonDimensional).
     rhoinf_ = 1.0;
     tinf_ = 1.0 / kGamma;
     qinf_ = cfg_.physics.mach_inf;
@@ -269,7 +304,50 @@ void EulerSolver::compute_fluxes() {
                                         jfaces_.con_var_diff, eos_, diss_);
             break;
         case config::InviscidScheme::LLF_2O:
-            numerics::llf_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
+            numerics::llf_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_,
+                                                   eos_, diss_);
+            break;
+        case config::InviscidScheme::MOVERS:
+            numerics::movers_dissipation_muscl(mesh_, metrics_, dv_, dui_, duj_,
+                                               eos_, diss_);
+            break;
+        case config::InviscidScheme::MOVERS_H1:
+            numerics::movers_h1_dissipation(mesh_, metrics_, dv_, eos_, diss_);
+            break;
+        case config::InviscidScheme::MOVERS_LE1:
+            conserved_differences(cv_, cui_, cuj_);
+            numerics::movers_le1_dissipation(mesh_, metrics_, cv_, dv_, cui_, cuj_,
+                                             eos_, diss_);
+            break;
+        case config::InviscidScheme::ROE_TV:
+            numerics::roe_tv_dissipation(mesh_, metrics_, dv_, eos_, diss_);
+            break;
+        case config::InviscidScheme::KFDS:
+            kfds_dissipation_first_order(mesh_, metrics_, dv_, ifaces_, jfaces_,
+                                         eos_, diss_);
+            break;
+        case config::InviscidScheme::MOVERS_H2:
+            movers_h2_dissipation(mesh_, metrics_, dv_, dui_, duj_, 0.5, 0.5,
+                                  eos_, diss_);
+            break;
+        case config::InviscidScheme::MOVERS_LE2:
+            conserved_differences(cv_, cui_, cuj_);
+            numerics::movers_le2_dissipation(mesh_, metrics_, cv_, dv_, cui_, cuj_,
+                                             dui_, duj_, eos_, diss_);
+            break;
+        case config::InviscidScheme::ROE_TV_2O:
+            numerics::roe_tv_2o_dissipation(mesh_, metrics_, dv_, dui_, duj_,
+                                            eos_, diss_);
+            break;
+        case config::InviscidScheme::KFDS_2O:
+            kfds_dissipation_second_order(mesh_, metrics_, dv_, ifaces_, jfaces_,
+                                          eos_, diss_);
+            break;
+        case config::InviscidScheme::ECCS:
+            eccs_dissipation(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
+            break;
+        case config::InviscidScheme::NKFDS_MOVERS_NWSC:
+            movers_nwsc_dissipation(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
             break;
         default:
             throw std::runtime_error("scheme not yet wired into EulerSolver");
@@ -482,6 +560,8 @@ void EulerSolver::bc_slip_wall(const BoundarySegmentRuntime& s) {
 
 void EulerSolver::bc_no_slip_wall(const BoundarySegmentRuntime& s,
                                   std::optional<double> wall_temp) {
+    // Isothermal walls override T at ghost with the specified wall temperature
+    const bool isothermal = wall_temp.has_value() && *wall_temp > 0.0;
     const Field<Vec2>& si = metrics_.si;
     const Field<Vec2>& sj = metrics_.sj;
     const int lo = s.start - 2, hi = s.end - 2;
@@ -794,62 +874,78 @@ void EulerSolver::residue_and_forces(int iter, double dt) {
     }
 }
 
+void EulerSolver::scale_rhs_only() {
+    const int nx = mesh_.nx(), ny = mesh_.ny();
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx; ++i) {
+            const double adtv = tstep_(i, j) / metrics_.area(i, j);
+            for (int k = 0; k < 4; ++k) rhs_(k, i, j) *= adtv;
+        }
+}
+
+void EulerSolver::ssprk_blend(double ark, double brk) {
+    const int nx = mesh_.nx(), ny = mesh_.ny();
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx; ++i) {
+            for (int k = 0; k < 4; ++k) {
+                if (ark == 0.0)
+                    cv_(k,i,j) = cvold_(k,i,j) - rhs_(k,i,j);
+                else
+                    cv_(k,i,j) = ark*cvold_(k,i,j) + brk*(cv_(k,i,j)-rhs_(k,i,j));
+            }
+            const double p = eos_.pressure(
+                cv_(RHO,i,j), cv_(U,i,j), cv_(V,i,j), cv_(E,i,j));
+            bool bad = !(p >= 0.0);
+            for (int k = 0; k < 4 && !bad; ++k) bad = !(cv_(k,i,j)==cv_(k,i,j));
+            if (bad)
+                throw std::runtime_error(std::format(
+                    "NaN/negative state at cell ({},{})", i, j));
+        }
+}
+
 int EulerSolver::run(int max_iterations) {
-    const bool dbg = std::getenv("NS_DEBUG_PROGRESS") != nullptr;
+    int nstages = 1;
+    double ark[3] = {0.0, 0.0, 0.0};
+    double brk[3] = {1.0, 1.0, 1.0};
+    switch (cfg_.numerics.time_method) {
+        case config::TimeMethod::SSPRK2:
+            nstages = 2; ark[0]=0;ark[1]=0.5; brk[0]=1;brk[1]=0.5; break;
+        case config::TimeMethod::SSPRK3:
+            nstages = 3; ark[0]=0;ark[1]=0.75;ark[2]=1.0/3.0;
+            brk[0]=1;brk[1]=0.25;brk[2]=2.0/3.0; break;
+        default: break;
+    }
+
     double dt_prev = 0.0;
     int iter = 0;
     while (iter < max_iterations) {
-#ifdef NS_WITH_MPI
-        if (dbg)
-            std::fprintf(stderr, "[R%d it%d enter]\n", decomp_.rank, iter + 1);
-#endif
-        // QUIRK: legacy accumulates time with the PREVIOUS iteration's dt.
+        if (cfg_.flow == config::FlowType::Unsteady &&
+            time_ >= cfg_.run.total_time) break;
+
         time_ += dt_prev;
         ++iter;
 
         cvold_ = cv_;
-        diss_.fill(0.0);
 
         time_step_euler();
-#ifdef NS_WITH_MPI
-        if (dbg) std::fprintf(stderr, "[R%d it%d ts]\n", decomp_.rank, iter);
-#endif
-        compute_fluxes();
-#ifdef NS_WITH_MPI
-        if (dbg) std::fprintf(stderr, "[R%d it%d flux]\n", decomp_.rank, iter);
-#endif
-        {
-#ifdef NS_WITH_MPI
-            if (std::getenv("NS_DEBUG_PROGRESS"))
-                std::fprintf(stderr, "[R%d it%d upd]\n", decomp_.rank, iter);
-#endif
-        }
-        scale_rhs_and_update();
-#ifdef NS_WITH_MPI
-        if (std::getenv("NS_DEBUG_PROGRESS"))
-            std::fprintf(stderr, "[R%d it%d upd-done]\n", decomp_.rank, iter);
-#endif
-        dependent_variables_all();
-#ifdef NS_WITH_MPI
-        if (mpi_mode_) {
-            if (dbg) std::fprintf(stderr, "[R%d it%d exch-in]\n", decomp_.rank, iter);
-            halo_.exchange(dv_);
-            if (dbg) std::fprintf(stderr, "[R%d it%d exch-out bc]\n", decomp_.rank, iter);
-        }
-#endif
-        apply_boundaries();
 
-        const double dt_now = tstep_(0, 0);  // global min after override
-        if (dbg)
-            std::fprintf(stderr, "[R%d it%d res-in]\n", decomp_.rank, iter);
+        for (int s = 0; s < nstages; ++s) {
+            diss_.fill(0.0);
+            compute_fluxes();
+            scale_rhs_only();
+            ssprk_blend(ark[s], brk[s]);
+            dependent_variables_all();
+#ifdef NS_WITH_MPI
+            if (mpi_mode_) halo_.exchange(dv_);
+#endif
+            apply_boundaries();
+        }
+
+        const double dt_now = tstep_(0, 0);
         residue_and_forces(iter, dt_now);
-#ifdef NS_WITH_MPI
-        if (dbg) std::fprintf(stderr, "[R%d it%d res-out]\n", decomp_.rank, iter);
-#endif
         dt_prev = dt_now;
-
         iter_done_ = iter;
-        if (resn1_ < 1e-14) return iter;  // converged
+        if (resn1_ < 1e-14) return iter;
     }
     return iter_done_;
 }
