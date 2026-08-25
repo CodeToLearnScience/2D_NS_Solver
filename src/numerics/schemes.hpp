@@ -157,6 +157,23 @@ void kfds_dissipation_second_order(const StructuredMesh& mesh,
                                    const physics::IdealGas& eos,
                                    MultiField<double>& diss);
 
+/// Scheme 27: ECCS — Entropy-Corrected Contact Steepening.
+void eccs_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                      const MultiField<double>& dv,
+                      const MultiField<double>& dui,
+                      const MultiField<double>& duj,
+                      const physics::IdealGas& eos,
+                      MultiField<double>& diss);
+
+/// Scheme 29: MOVERS-NWSC — Signed wave speed + pressure-sensor blending.
+void movers_nwsc_dissipation(const StructuredMesh& mesh,
+                             const MeshMetrics& metrics,
+                             const MultiField<double>& dv,
+                             const MultiField<double>& dui,
+                             const MultiField<double>& duj,
+                             const physics::IdealGas& eos,
+                             MultiField<double>& diss);
+
 /// Conserved-variable differences (legacy Conv_Variables_Differences): same
 /// stencil pattern as primitive_differences but on cv planes.
 void conserved_differences(const MultiField<double>& cv, MultiField<double>& cui,
