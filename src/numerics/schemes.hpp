@@ -13,6 +13,7 @@
 #include <limits>
 
 #include "fields/field.hpp"
+#include "numerics/face_data.hpp"
 #include "mesh/mesh.hpp"
 #include "physics/eos.hpp"
 
@@ -107,6 +108,20 @@ void movers_le1_dissipation(const StructuredMesh& mesh, const MeshMetrics& metri
                             const MultiField<double>& cv, const MultiField<double>& dv,
                             const MultiField<double>& cui, const MultiField<double>& cuj,
                             const physics::IdealGas& eos, MultiField<double>& diss);
+
+/// Scheme 5: first-order Roe with TVD entropy fix (three-wave beta split).
+void roe_tv_dissipation(const StructuredMesh& mesh, const MeshMetrics& metrics,
+                        const MultiField<double>& dv, const physics::IdealGas& eos,
+                        MultiField<double>& diss);
+
+/// Scheme 6: KFDS first-order. Operates on pre-computed face data.
+void kfds_dissipation_first_order(const StructuredMesh& mesh,
+                                  const MeshMetrics& metrics,
+                                  const MultiField<double>& dv,
+                                  const numerics::FaceFluxData& ifaces,
+                                  const numerics::FaceFluxData& jfaces,
+                                  const physics::IdealGas& eos,
+                                  MultiField<double>& diss);
 
 /// Conserved-variable differences (legacy Conv_Variables_Differences): same
 /// stencil pattern as primitive_differences but on cv planes.
