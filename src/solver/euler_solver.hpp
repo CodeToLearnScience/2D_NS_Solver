@@ -105,11 +105,17 @@ private:
     void scale_rhs_and_update();
     void residue_and_forces(int iter, double dt);
     void dependent_variables_all();
+    void compute_viscous_chain();
+    /// Dispatches to the configured inviscid scheme's dissipation kernel.
+    void dispatch_inviscid_scheme();
 
     // Boundary kernels (legacy Bc_Transmitive / Bc_Prescribed_Inflow / BC_wall)
     void bc_transmissive(const BoundarySegmentRuntime& s);
     void bc_prescribed_inflow(const BoundarySegmentRuntime& s);
     void bc_slip_wall(const BoundarySegmentRuntime& s);
+    void bc_no_slip_wall(const BoundarySegmentRuntime& s,
+                         std::optional<double> wall_temp = std::nullopt);
+    void bc_farfield(const BoundarySegmentRuntime& s);
     void transport_at(int i, int j);
     [[nodiscard]] int decomp_offset() const;
     [[nodiscard]] bool owns_rows(int glo, int ghi) const;
@@ -119,6 +125,7 @@ private:
     const config::Config cfg_;
 
     MultiField<double> cv_, cvold_, dv_, diss_, rhs_, dui_, duj_;
+    MultiField<double> gradfi_, gradfj_;
     Field<double> tstep_;
     numerics::FaceFluxData ifaces_, jfaces_;
     physics::IdealGas eos_{};

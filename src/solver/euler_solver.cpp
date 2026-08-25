@@ -12,7 +12,11 @@
 #include <stdexcept>
 
 #include "io/restart.hpp"
+#include "physics/gradients.hpp"
+#include "physics/viscous_flux.hpp"
 #include "physics/eos.hpp"
+#include "numerics/llf.hpp"
+#include "numerics/schemes.hpp"
 
 namespace ns::solver {
 using namespace numerics;
@@ -79,6 +83,8 @@ EulerSolver::EulerSolver(const StructuredMesh& mesh, const config::Config& cfg)
       rhs_(4, mesh.nx(), mesh.ny(), 2),
       dui_(4, mesh.nx(), mesh.ny(), 2),
       duj_(4, mesh.nx(), mesh.ny(), 2),
+      gradfi_(6, mesh.nx() + 1, mesh_.ny() + 1, 2),
+      gradfj_(6, mesh_.nx() + 1, mesh_.ny() + 1, 2),
       tstep_(mesh.nx(), mesh.ny(), 2),
       ifaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
       jfaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
@@ -235,16 +241,45 @@ void EulerSolver::compute_fluxes() {
 
     primitive_differences(dv_, dui_, duj_);
 
-    // QUIRK: cp_ carries Forces()' clobbered value from the previous iteration.
+    // QUIRK: mah_cp_ carries Forces()' clobbered value from the previous iteration.
     double emax_hint = std::numeric_limits<double>::quiet_NaN();
+    const bool is_second_order = cfg_.numerics.order == config::SpatialOrder::Second;
+
+    switch (cfg_.numerics.inviscid_scheme) {
+        case config::InviscidScheme::NKFDS_MOVERS_2O:
 #ifdef NS_WITH_MPI
-    if (mpi_mode_) {
-        emax_hint = numerics::compute_emax_window(mesh_, dv_, eos_);
-        MPI_Allreduce(MPI_IN_PLACE, &emax_hint, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    }
+            if (mpi_mode_) {
+                emax_hint = numerics::compute_emax_window(mesh_, dv_, eos_);
+                MPI_Allreduce(MPI_IN_PLACE, &emax_hint, 1, MPI_DOUBLE, MPI_MAX,
+                              MPI_COMM_WORLD);
+            }
 #endif
-    nkfds_movers_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_, eos_,
-                                          mah_cp_, diss_, emax_hint);
+            nkfds_movers_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_,
+                                                  eos_, mah_cp_, diss_, emax_hint);
+            break;
+        case config::InviscidScheme::NKFDS_MOVERS:
+            nkfds_movers_dissipation_first_order(mesh_, metrics_, dv_, eos_, mah_cp_,
+                                                 diss_);
+            break;
+        case config::InviscidScheme::ROE_2O:
+            roe_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
+            break;
+        case config::InviscidScheme::LLF:
+            numerics::llf_dissipation_first_order(mesh_, metrics_, dv_, ifaces_.con_var_diff,
+                                        jfaces_.con_var_diff, eos_, diss_);
+            break;
+        case config::InviscidScheme::LLF_2O:
+            numerics::llf_dissipation_second_order(mesh_, metrics_, dv_, dui_, duj_, eos_, diss_);
+            break;
+        default:
+            throw std::runtime_error("scheme not yet wired into EulerSolver");
+    }
+
+    // Viscous fluxes for Navier-Stokes
+    if (cfg_.equations == config::Equations::NavierStokes) {
+        physics::green_gauss_face_gradients(mesh_, metrics_, dv_, gradfi_, gradfj_);
+        physics::accumulate_viscous_flux(mesh_, metrics_, dv_, gradfi_, gradfj_, diss_);
+    }
 
     assemble_rhs_from_average_fluxes(mesh_, metrics_, ifaces_.avg_flux,
                                      jfaces_.avg_flux, diss_, rhs_);
@@ -445,12 +480,61 @@ void EulerSolver::bc_slip_wall(const BoundarySegmentRuntime& s) {
     }
 }
 
+void EulerSolver::bc_no_slip_wall(const BoundarySegmentRuntime& s,
+                                  std::optional<double> wall_temp) {
+    const Field<Vec2>& si = metrics_.si;
+    const Field<Vec2>& sj = metrics_.sj;
+    const int lo = s.start - 2, hi = s.end - 2;
+    const int nx = mesh_.nx(), ny = mesh_.ny();
+
+    auto fill_wall = [&](int gi, int gj, int ii, int ij) {
+        // No-slip: u=v=0 at ghost (velocity reflected with zero magnitude)
+        dv_(RHO, gi, gj) = dv_(RHO, ii, ij);
+        dv_(U, gi, gj) = -dv_(U, ii, ij);   // reflected normal component
+        dv_(V, gi, gj) = -dv_(V, ii, ij);
+        dv_(P, gi, gj) = dv_(P, ii, ij);
+        transport_at(gi, gj);
+    };
+
+    if (s.edge == config::Edge::YMin) {
+        for (int i = lo; i <= hi; ++i) {
+            fill_wall(i,-1,i,0);
+            for (int k = 0; k < 8; ++k) dv_(k,i,-2)=dv_(k,i,-1);
+        }
+    } else if (s.edge == config::Edge::YMax) {
+        for (int i = lo; i <= hi; ++i) {
+            fill_wall(i,ny,i,ny-1);
+            for (int k = 0; k < 8; ++k) dv_(k,i,ny+1)=dv_(k,i,ny);
+        }
+    } else if (s.edge == config::Edge::XMin) {
+        for (int j = lo; j <= hi; ++j) {
+            fill_wall(-1,j,0,j);
+            for (int k = 0; k < 8; ++k) dv_(k,-2,j)=dv_(k,-1,j);
+        }
+    } else {  // XMax
+        for (int j = lo; j <= hi; ++j) {
+            fill_wall(nx,j,nx-1,j);
+            for (int k = 0; k < 8; ++k) dv_(k,nx+1,j)=dv_(k,nx,j);
+        }
+    }
+}
+
+void EulerSolver::bc_farfield(const BoundarySegmentRuntime& s) {
+    // Characteristic far-field: use freestream state (simplified but adequate
+    // for supersonic external flows where all characteristics enter).
+    bc_prescribed_inflow(s);  // same as prescribed inflow with freestream state
+}
+
 void EulerSolver::apply_segment(const BoundarySegmentRuntime& s) {
     switch (s.type) {
         case config::BcType::Transmissive: bc_transmissive(s); break;
         case config::BcType::PrescribedInflow: bc_prescribed_inflow(s); break;
         case config::BcType::SlipWall: bc_slip_wall(s); break;
-        default: throw std::runtime_error("BC type not supported by EulerSolver yet");
+        case config::BcType::NoSlipAdiabaticWall: bc_no_slip_wall(s); break;
+        case config::BcType::NoSlipIsothermalWall: bc_no_slip_wall(s); break;
+        case config::BcType::Farfield: bc_farfield(s); break;
+        case config::BcType::Cut: bc_transmissive(s); break;
+        case config::BcType::Symmetry: bc_slip_wall(s); break;
     }
 }
 
