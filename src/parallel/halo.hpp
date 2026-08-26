@@ -25,6 +25,17 @@ public:
     void exchange(MultiField<double>& f) const;
     void exchange(Field<double>& f) const;
 
+    /// True when this rank owns the global domain bottom (no lower neighbor).
+    [[nodiscard]] bool at_global_bottom() const noexcept { return lower_ < 0; }
+    /// True when this rank owns the global domain top (no upper neighbor).
+    [[nodiscard]] bool at_global_top() const noexcept { return upper_ < 0; }
+
+    /// Exchanges j-face metric rows (nf = ny+1 real face rows) so that ghost
+    /// slots -1 and nf hold the TRUE neighbor face metrics instead of copies.
+    /// xplane/yplane are strided arrays of nf + 2*ng doubles each.
+    void exchange_face_metric_rows(double* xplane, double* yplane, int stride_i,
+                                   int nf) const;
+
 private:
     void exchange_plane(double* plane, int stride_i, int ng_off, int plane_id) const;
 

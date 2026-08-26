@@ -20,8 +20,24 @@ namespace ns::physics {
 /// Number of gradient planes stored per face direction.
 inline constexpr int kGradPlanes = 6;
 
+/// Which local mesh edges coincide with global domain edges.  Serial runs
+/// set both true; j-slab MPI ranks set them from HaloExchange neighbors.
+struct FaceGradBoundaryFlags {
+    bool bottom_is_global = true;
+    bool top_is_global = true;
+};
+
+/// Optional corrected-ghost sj metrics and per-row normalization table for
+/// j-face gradients (MPI ranks supply these for exact serial parity).
+struct FaceGradTables {
+    const Field<Vec2>* sj_corrected = nullptr;  ///< sj whose ghost rows -1/nf+1 hold true neighbor face metrics
+    const Field<double>* rvol_j = nullptr;      ///< per-(i,jface) normalization factors, sized nx x (ny+1)
+};
+
 void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& metrics,
                                 const MultiField<double>& dv,
-                                MultiField<double>& gradfi, MultiField<double>& gradfj);
+                                MultiField<double>& gradfi, MultiField<double>& gradfj,
+                                FaceGradBoundaryFlags flags = {},
+                                const FaceGradTables* tables = nullptr);
 
 }  // namespace ns::physics

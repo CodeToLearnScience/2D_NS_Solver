@@ -124,6 +124,37 @@ EulerSolver::EulerSolver(const StructuredMesh& local_mesh, const config::Config&
     finish_init();
 }
 
+void EulerSolver::setup_mpi_gradient_tables() {
+    const int nx = mesh_.nx(), ny = mesh_.ny();
+
+    // 1) Corrected sj face metrics: copy, then exchange ghost face rows so
+    //    slots -1 and ny+1 hold the TRUE neighbour face vectors.
+    sj_corrected_ = metrics_.sj;
+#ifdef NS_WITH_MPI
+    halo_.exchange_face_metric_rows(&sj_corrected_.data()->x, &sj_corrected_.data()->y,
+                                    sj_corrected_.stride_i() * 2, ny + 1);
+#endif
+
+    // 2) True neighbour cell areas via a one-time plane exchange.
+    Field<double> area_x(metrics_.area);
+#ifdef NS_WITH_MPI
+    halo_.exchange(area_x);
+#endif
+
+    // 3) Per-row j-face normalization with two-sided interface dual volumes.
+    rvol_j_ = Field<double>(nx, ny + 1, 2);
+    const bool bot_global = halo_.at_global_bottom();
+    const bool top_global = halo_.at_global_top();
+    for (int i = 0; i < nx; ++i) {
+        for (int jf = 1; jf < ny; ++jf)
+            rvol_j_(i, jf) = 2.0 / (metrics_.area(i, jf) + metrics_.area(i, jf - 1));
+        rvol_j_(i, 0) = bot_global ? 2.0 / metrics_.area(i, 0)
+                                   : 2.0 / (area_x(i, -1) + metrics_.area(i, 0));
+        rvol_j_(i, ny) = top_global ? 2.0 / metrics_.area(i, ny - 1)
+                                    : 2.0 / (metrics_.area(i, ny - 1) + area_x(i, ny));
+    }
+}
+
 void EulerSolver::fill_meta_from_mesh() {
     meta_.nx = mesh_.nx();
     meta_.ny = mesh_.ny();
@@ -141,7 +172,10 @@ void EulerSolver::fill_meta_from_mesh() {
 void EulerSolver::finish_init() {
     init_freestream();
 #ifdef NS_WITH_MPI
-    if (mpi_mode_) halo_.exchange(dv_);
+    if (mpi_mode_) {
+        halo_.exchange(dv_);
+        setup_mpi_gradient_tables();
+    }
 #endif
     // legacy main.cpp: Dependent_Variables BEFORE the pre-loop boundary pass,
     // so the whole canvas starts from cv-reconstructed (not analytic) values
@@ -388,7 +422,16 @@ void EulerSolver::compute_fluxes() {
 
     // Viscous fluxes for Navier-Stokes
     if (cfg_.equations == config::Equations::NavierStokes) {
-        physics::green_gauss_face_gradients(mesh_, metrics_, dv_, gradfi_, gradfj_);
+        if (mpi_mode_) {
+            const physics::FaceGradBoundaryFlags flg{halo_.at_global_bottom(),
+                                                    halo_.at_global_top()};
+            const physics::FaceGradTables tbl{&sj_corrected_, &rvol_j_};
+            physics::green_gauss_face_gradients(mesh_, metrics_, dv_, gradfi_,
+                                                gradfj_, flg, &tbl);
+        } else {
+            physics::green_gauss_face_gradients(mesh_, metrics_, dv_, gradfi_,
+                                                gradfj_);
+        }
         physics::accumulate_viscous_flux(mesh_, metrics_, dv_, gradfi_, gradfj_, diss_);
     }
 
@@ -742,7 +785,14 @@ void EulerSolver::update_corners() {
 
 void EulerSolver::apply_boundaries() {
     update_corners();
-    for (const auto& s : segments_) apply_segment(s);
+    for (const auto& s : segments_) {
+        // j-slab ownership: only the rank owning the global bottom/top may
+        // stamp YMin/YMax segments; otherwise inter-rank ghost rows would be
+        // clobbered with physical-BC state instead of neighbour data.
+        if (s.edge == config::Edge::YMin && !decomp_.owns_jmin()) continue;
+        if (s.edge == config::Edge::YMax && !decomp_.owns_jmax()) continue;
+        apply_segment(s);
+    }
 }
 
 void EulerSolver::scale_rhs_and_update() {

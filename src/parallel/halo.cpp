@@ -5,6 +5,7 @@
 #endif
 
 #include <cstring>
+#include <cstdio>
 
 namespace ns::parallel {
 namespace {
@@ -99,6 +100,69 @@ void HaloExchange::exchange_plane(double* plane, int stride_i, int ng_off,
 
     if (upper_ >= 0) unpack_upper(recv_hi_.data(), plane, stride_i, ng_off, nx_, ny_, ng_);
     if (lower_ >= 0) unpack_lower(recv_lo_.data(), plane, stride_i, ng_off, nx_, ng_);
+#endif
+}
+
+void HaloExchange::exchange_face_metric_rows(double* xplane, double* yplane,
+                                             int stride_d, int nf) const {
+#ifndef NS_WITH_MPI
+    (void)xplane;
+    (void)yplane;
+    (void)stride_d;
+    (void)nf;
+#else
+    // Face-row identity: local sj(jf) is global face (offset + jf).  Fills:
+    //   slot -1 <- global face (offset-1)  = lower neighbour's row nf-2
+    //   slot nf <- global face (offset+nf) = upper neighbour's row 1
+    // Both vector components travel in one merged buffer; all messages are
+    // posted non-blockingly and completed together, so uneven slab heights
+    // or neighbour-role asymmetries cannot deadlock.
+    auto at = [&](double* p, int j, int i) -> double& {
+        return p[static_cast<std::size_t>(i + ng_) * stride_d +
+                 static_cast<std::size_t>(j + ng_) * 2];
+    };
+
+    const int n2 = 2 * nx_;
+    std::vector<double> up_buf(static_cast<std::size_t>(n2)),
+        dn_buf(static_cast<std::size_t>(n2)), rx_lo(static_cast<std::size_t>(n2)),
+        rx_hi(static_cast<std::size_t>(n2));
+
+    auto pack_row = [&](std::vector<double>& dst, int j) {
+        for (int i = 0; i < nx_; ++i) {
+            dst[i] = at(xplane, j, i);
+            dst[nx_ + i] = at(yplane, j, i);
+        }
+    };
+    auto unpack_into = [&](const std::vector<double>& src, int j) {
+        for (int i = 0; i < nx_; ++i) {
+            at(xplane, j, i) = src[i];
+            at(yplane, j, i) = src[nx_ + i];
+        }
+    };
+
+    MPI_Request req[4];
+    int nreq = 0;
+    if (upper_ >= 0) {
+        pack_row(up_buf, nf - 2);
+        MPI_Isend(up_buf.data(), n2, MPI_DOUBLE, upper_, tag_base_, MPI_COMM_WORLD,
+                  &req[nreq++]);
+    }
+    if (lower_ >= 0) {
+        pack_row(dn_buf, 1);
+        MPI_Isend(dn_buf.data(), n2, MPI_DOUBLE, lower_, tag_base_ + 1,
+                  MPI_COMM_WORLD, &req[nreq++]);
+    }
+    if (lower_ >= 0)
+        MPI_Irecv(rx_lo.data(), n2, MPI_DOUBLE, lower_, tag_base_, MPI_COMM_WORLD,
+                  &req[nreq++]);
+    if (upper_ >= 0)
+        MPI_Irecv(rx_hi.data(), n2, MPI_DOUBLE, upper_, tag_base_ + 1,
+                  MPI_COMM_WORLD, &req[nreq++]);
+    if (nreq > 0)
+        MPI_Waitall(nreq, req, MPI_STATUSES_IGNORE);
+
+    if (lower_ >= 0) unpack_into(rx_lo, -1);
+    if (upper_ >= 0) unpack_into(rx_hi, nf);
 #endif
 }
 

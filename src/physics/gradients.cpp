@@ -34,10 +34,13 @@ inline void scatter_i(const Vec2& s, double phi_u, double phi_v, double phi_t,
 
 void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& metrics,
                                 const MultiField<double>& dv,
-                                MultiField<double>& gradfi, MultiField<double>& gradfj) {
+                                MultiField<double>& gradfi, MultiField<double>& gradfj,
+                                FaceGradBoundaryFlags flags,
+                                const FaceGradTables* tables) {
     const int nx = mesh.nx(), ny = mesh.ny();
     const Field<Vec2>& si = metrics.si;
-    const Field<Vec2>& sj = metrics.sj;
+    const Field<Vec2>& sj = tables && tables->sj_corrected ? *tables->sj_corrected
+                                                           : metrics.sj;
     const Field<double>& area = metrics.area;
 
     // Zero gradient fields before accumulation (legacy Initialize_Gradients).
@@ -143,17 +146,26 @@ void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& m
             scatter_i({lx, ly}, uav, vav, tav, gradfj, i - 1, jc, -1.0);
         }
 
-        // bottom domain boundary (legacy j=2): half-state with ghost cell
-        {
+        // bottom domain boundary (legacy j=2): half-state with ghost cell.
+        // At a rank interface the true neighbour contribution is used instead.
+        if (flags.bottom_is_global) {
             const double sx = sj(i, 0).x, sy = sj(i, 0).y;
             const double uav = 0.5 * (dv(U, i, -1) + dv(U, i, 0));
             const double vav = 0.5 * (dv(V, i, -1) + dv(V, i, 0));
             const double tav = 0.5 * (dv(T, i, -1) + dv(T, i, 0));
             scatter_i({sx, sy}, uav, vav, tav, gradfj, i, 0, +1.0);
+        } else {
+            // Serial interior term: +(aux bottom flux of row jf-1), where the
+            // aux face vector averages sj at rows -1 and 0 (true metrics in
+            // ghost slot -1 via exchange_face_metric_rows).
+            const double sx = 0.5 * (sj(i, -1).x + sj(i, 0).x);
+            const double sy = 0.5 * (sj(i, -1).y + sj(i, 0).y);
+            scatter_i({sx, sy}, dv(U, i, -1), dv(V, i, -1), dv(T, i, -1),
+                      gradfj, i, 0, +1.0);
         }
 
         // top domain boundary (legacy j=jd1)
-        {
+        if (flags.top_is_global) {
             const double sx = sj(i, ny).x, sy = sj(i, ny).y;
             const double uav = 0.5 * (dv(U, i, ny - 1) + dv(U, i, ny));
             const double vav = 0.5 * (dv(V, i, ny - 1) + dv(V, i, ny));
@@ -171,20 +183,37 @@ void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& m
                                         dv(T, i - 1, ny - 1) + dv(T, i - 1, ny));
             scatter_i({lx, ly}, luav, lvav, ltav, gradfj, i, ny, +1.0);
             scatter_i({lx, ly}, luav, lvav, ltav, gradfj, i - 1, ny, -1.0);
+        } else {
+            // Serial interior term: -(aux bottom flux of row jf = local ny),
+            // aux face vector averaging sj rows ny and ny+1 (true neighbor
+            // metric in ghost slot).
+            const double sx = 0.5 * (sj(i, ny).x + sj(i, ny + 1).x);
+            const double sy = 0.5 * (sj(i, ny).y + sj(i, ny + 1).y);
+            scatter_i({sx, sy}, dv(U, i, ny), dv(V, i, ny), dv(T, i, ny),
+                      gradfj, i, ny, -1.0);
         }
     }
 
     // normalization: dual volume between cells (i,j-1),(i,j); right column
     // (i=nx) intentionally NOT normalized -- legacy consumers never read it.
-    for (int i = 0; i < nx; ++i) {
-        for (int jf = 1; jf < ny; ++jf) {
-            const double rvol = 2.0 / (area(i, jf) + area(i, jf - 1));
-            for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, jf) *= rvol;
+    // MPI ranks pass a precomputed rvol_j table whose interface rows use the
+    // true two-cell dual volume (neighbor areas obtained by exchange).
+    if (tables && tables->rvol_j) {
+        const Field<double>& rv = *tables->rvol_j;
+        for (int i = 0; i < nx; ++i)
+            for (int jf = 0; jf <= ny; ++jf)
+                for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, jf) *= rv(i, jf);
+    } else {
+        for (int i = 0; i < nx; ++i) {
+            for (int jf = 1; jf < ny; ++jf) {
+                const double rvol = 2.0 / (area(i, jf) + area(i, jf - 1));
+                for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, jf) *= rvol;
+            }
+            const double rvol_bottom = 2.0 / area(i, 0);
+            for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, 0) *= rvol_bottom;
+            const double rvol_top = 2.0 / area(i, ny - 1);
+            for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, ny) *= rvol_top;
         }
-        const double rvol_bottom = 2.0 / area(i, 0);
-        for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, 0) *= rvol_bottom;
-        const double rvol_top = 2.0 / area(i, ny - 1);
-        for (int k = 0; k < kGradPlanes; ++k) gradfj(k, i, ny) *= rvol_top;
     }
 }
 

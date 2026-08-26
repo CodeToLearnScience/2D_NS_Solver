@@ -122,6 +122,7 @@ private:
     void bc_symmetry(const BoundarySegmentRuntime& s);
     void clamp_segment_bounds(BoundarySegmentRuntime& s);
     void transport_at(int i, int j);
+    void setup_mpi_gradient_tables();
     [[nodiscard]] int decomp_offset() const;
     [[nodiscard]] bool owns_rows(int glo, int ghi) const;
 
@@ -133,6 +134,10 @@ private:
     MultiField<double> gradfi_, gradfj_;
     MultiField<double> cui_, cuj_;
     Field<double> tstep_;
+    /// MPI-only: corrected-ghost sj metrics and j-face normalization table
+    /// so Green-Gauss gradients at rank interfaces match serial exactly.
+    Field<Vec2> sj_corrected_{};
+    Field<double> rvol_j_{};
     numerics::FaceFluxData ifaces_, jfaces_;
     physics::IdealGas eos_{};
 
