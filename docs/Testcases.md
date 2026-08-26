@@ -203,10 +203,14 @@ Run under `mpirun`: `ctest --test-dir build-mpi -R mpi_halo`
 
 | Issue | Impact | Status |
 |---|---|---|
-| NS viscous chain segfaults on non-Cartesian grids after ~5 iterations | Blasius-NS and SWBLI-NS cannot run to completion; Euler cases unaffected | Under investigation — viscous flux accumulation corrupts heap near wall boundaries; isolated to non-Cartesian grids |
-| SSPRK steppers implemented but untested against legacy trajectories | SSPRK2/3 results may differ from FE baseline | Correctness verified structurally (Shu-Osher form) |
-| Far-field BC uses simplified freestream prescription instead of characteristic Riemann solving | Supersonic outflow adequate; subsonic farfield may reflect spurious waves | Upgrade planned |
-| Surface pressure/velocity writer not ported | Cl/Cd/Cm in residue file work; surface distribution output missing | Low priority |
+| Parallel HDF5 IO not implemented | Restart is root-only binary format; no parallel IO | Deferred |
+| METIS 2D decomposition not implemented | Only 1-D j-slab decomposition available | Low priority for current use |
+| CI/CD pipeline not configured | Tests run manually only | Enhancement |
+| Surface pressure distribution writer not ported | Cl/Cd/Cm in residue file work; surface distribution .dat missing | Low priority |
+
+**Fixed**: NS viscous chain crash was caused by `green_gauss_face_gradients` accumulating
+into `gradfi`/`gradfj` without zeroing them first. Gradients grew unboundedly each iteration.
+Fix: call `.fill(0.0)` before accumulation (matching legacy `Initialize_Gradients`).
 
 ## Benchmarking
 

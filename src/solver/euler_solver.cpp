@@ -282,6 +282,11 @@ void EulerSolver::time_step_euler() {
                 throw std::runtime_error(
                     std::format("non-positive time step at ({},{})", i, j));
             tstep_(i, j) = dt;
+#ifdef NS_WITH_MPI
+#endif
+            if (std::getenv("NS_DEBUG_DT") && i==0 && j==0)
+                std::fprintf(stderr, "[DT] sri=%.6g srj=%.6g sr_total=%.6g area=%.6g dt=%.6g mu=%.6g\n",
+                             sri, srj, sr_total, metrics_.area(i,j), dt, dv_(MU,i,j));
         }
 
     // QUIRK preserved: "local" dt is overridden by the interior minimum.
@@ -383,11 +388,8 @@ void EulerSolver::compute_fluxes() {
 
     // Viscous fluxes for Navier-Stokes
     if (cfg_.equations == config::Equations::NavierStokes) {
-        std::fprintf(stderr, "[NS] computing gradients\n");
         physics::green_gauss_face_gradients(mesh_, metrics_, dv_, gradfi_, gradfj_);
-        std::fprintf(stderr, "[NS] computing viscous flux\n");
         physics::accumulate_viscous_flux(mesh_, metrics_, dv_, gradfi_, gradfj_, diss_);
-        std::fprintf(stderr, "[NS] done\n");
     }
 
     assemble_rhs_from_average_fluxes(mesh_, metrics_, ifaces_.avg_flux,
@@ -633,7 +635,7 @@ void EulerSolver::bc_no_slip_wall(const BoundarySegmentRuntime& s,
 void EulerSolver::bc_farfield(const BoundarySegmentRuntime& s) {
     // Characteristic far-field: use freestream state (simplified but adequate
     // for supersonic external flows where all characteristics enter).
-    bc_prescribed_inflow(clipped);  // same as prescribed inflow with freestream state
+    bc_prescribed_inflow(s);  // same as prescribed inflow with freestream state
 }
 
 void EulerSolver::bc_symmetry(const BoundarySegmentRuntime& s) {
@@ -686,14 +688,14 @@ void EulerSolver::clamp_segment_bounds(BoundarySegmentRuntime& s) {
 
 void EulerSolver::apply_segment(const BoundarySegmentRuntime& s) {
     switch (s.type) {
-        case config::BcType::Transmissive: bc_transmissive(clipped); break;
-        case config::BcType::PrescribedInflow: bc_prescribed_inflow(clipped); break;
-        case config::BcType::SlipWall: bc_slip_wall(clipped); break;
-        case config::BcType::NoSlipAdiabaticWall: bc_no_slip_wall(clipped); break;
-        case config::BcType::NoSlipIsothermalWall: bc_no_slip_wall(clipped); break;
-        case config::BcType::Farfield: bc_farfield(clipped); break;
-        case config::BcType::Cut: bc_transmissive(clipped); break;
-        case config::BcType::Symmetry: bc_symmetry(clipped); break;
+        case config::BcType::Transmissive: bc_transmissive(s); break;
+        case config::BcType::PrescribedInflow: bc_prescribed_inflow(s); break;
+        case config::BcType::SlipWall: bc_slip_wall(s); break;
+        case config::BcType::NoSlipAdiabaticWall: bc_no_slip_wall(s); break;
+        case config::BcType::NoSlipIsothermalWall: bc_no_slip_wall(s); break;
+        case config::BcType::Farfield: bc_farfield(s); break;
+        case config::BcType::Cut: bc_transmissive(s); break;
+        case config::BcType::Symmetry: bc_symmetry(s); break;
     }
 }
 

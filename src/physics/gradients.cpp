@@ -40,6 +40,10 @@ void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& m
     const Field<Vec2>& sj = metrics.sj;
     const Field<double>& area = metrics.area;
 
+    // Zero gradient fields before accumulation (legacy Initialize_Gradients).
+    gradfi.fill(0.0);
+    gradfj.fill(0.0);
+
     // ------------------------------------------------------------------
     // i-direction face gradients (legacy Gradient_FaceI)
     // ------------------------------------------------------------------
