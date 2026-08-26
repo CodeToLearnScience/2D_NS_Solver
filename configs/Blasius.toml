@@ -41,13 +41,6 @@ directory = "output"
 display_frequency = 1000
 write_frequency = 5000
 formats = ["solution", "vtk", "surface", "residual"]
-
-[[boundary]]
-edge = "jmin"
-start = 2
-end = 33
-type = "symmetry"
-
 [[boundary]]
 edge = "imin"
 start = 2
@@ -68,7 +61,7 @@ type = "farfield"
 
 [[boundary]]
 edge = "jmin"
-start = 34
+start = 2
 end = 161
 type = "no-slip-adiabatic-wall"
 

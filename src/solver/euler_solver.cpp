@@ -107,6 +107,10 @@ EulerSolver::EulerSolver(const StructuredMesh& local_mesh, const config::Config&
       rhs_(4, local_mesh.nx(), local_mesh.ny(), 2),
       dui_(4, local_mesh.nx(), local_mesh.ny(), 2),
       duj_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      gradfi_(6, local_mesh.nx() + 1, local_mesh.ny() + 1, 2),
+      gradfj_(6, local_mesh.nx() + 1, local_mesh.ny() + 1, 2),
+      cui_(4, local_mesh.nx(), local_mesh.ny(), 2),
+      cuj_(4, local_mesh.nx(), local_mesh.ny(), 2),
       tstep_(local_mesh.nx(), local_mesh.ny(), 2),
       ifaces_(kNConv, local_mesh.nx() + 1, local_mesh.ny() + 1, 2),
       jfaces_(kNConv, local_mesh.nx() + 1, local_mesh.ny() + 1, 2),
@@ -251,7 +255,29 @@ void EulerSolver::time_step_euler() {
             const double vcj = u * (sxj / dsj) + v * (syj / dsj);
             const double srj = (std::fabs(vcj) + dv_(A, i, j)) * dsj;
 
-            const double dt = cfg_.numerics.cfl * metrics_.area(i, j) / (sri + srj);
+            double sr_total = sri + srj;
+
+            // Viscous spectral radius (legacy Time_Step_NS): adds diffusion
+            // limit dt ∝ Δx²·ρ/μ. Only for Navier-Stokes.
+#ifdef NS_WITH_MPI
+            const bool is_ns = cfg_.equations == config::Equations::NavierStokes;
+            if (!mpi_mode_ || is_ns)
+#endif
+            if (cfg_.equations == config::Equations::NavierStokes) {
+                constexpr double cfac = 2.0;
+                const double rho_inv = 1.0 / dv_(RHO, i, j);
+                const double f1 = (4.0 / 3.0) * rho_inv;
+                const double f2 = kGamma * rho_inv;
+                const double fac = std::max(f1, f2);
+                const double mu = dv_(MU, i, j);
+                const double dtv = fac * mu / eos_.prandtl;
+                const double ar_ = metrics_.area(i, j);
+                const double srvi = cfac * dtv * dsi * dsi / ar_;
+                const double srvj = cfac * dtv * dsj * dsj / ar_;
+                sr_total += srvi + srvj;
+            }
+
+            const double dt = cfg_.numerics.cfl * metrics_.area(i, j) / sr_total;
             if (!(dt > 0.0))
                 throw std::runtime_error(
                     std::format("non-positive time step at ({},{})", i, j));
@@ -357,8 +383,11 @@ void EulerSolver::compute_fluxes() {
 
     // Viscous fluxes for Navier-Stokes
     if (cfg_.equations == config::Equations::NavierStokes) {
+        std::fprintf(stderr, "[NS] computing gradients\n");
         physics::green_gauss_face_gradients(mesh_, metrics_, dv_, gradfi_, gradfj_);
+        std::fprintf(stderr, "[NS] computing viscous flux\n");
         physics::accumulate_viscous_flux(mesh_, metrics_, dv_, gradfi_, gradfj_, diss_);
+        std::fprintf(stderr, "[NS] done\n");
     }
 
     assemble_rhs_from_average_fluxes(mesh_, metrics_, ifaces_.avg_flux,
@@ -604,19 +633,67 @@ void EulerSolver::bc_no_slip_wall(const BoundarySegmentRuntime& s,
 void EulerSolver::bc_farfield(const BoundarySegmentRuntime& s) {
     // Characteristic far-field: use freestream state (simplified but adequate
     // for supersonic external flows where all characteristics enter).
-    bc_prescribed_inflow(s);  // same as prescribed inflow with freestream state
+    bc_prescribed_inflow(clipped);  // same as prescribed inflow with freestream state
+}
+
+void EulerSolver::bc_symmetry(const BoundarySegmentRuntime& s) {
+#ifdef NS_WITH_MPI
+    if (mpi_mode_ && (s.edge == config::Edge::YMin && !decomp_.owns_jmin())) return;
+    if (mpi_mode_ && (s.edge == config::Edge::YMax && !decomp_.owns_jmax())) return;
+#endif
+    const int lo = s.start - 2, hi = s.end - 2;
+    const int nx = mesh_.nx(), ny = mesh_.ny();
+
+    auto sym_fill = [&](int gi, int gj, int ii, int ij) {
+        for (int k = 0; k < 8; ++k) dv_(k, gi, gj) = dv_(k, ii, ij);
+        dv_(V, gi, gj) = -dv_(V, ii, ij);  // negate normal velocity only
+    };
+
+    if (s.edge == config::Edge::YMin) {
+        for (int i = lo; i <= hi; ++i) {
+            sym_fill(i,-1,i,0);
+            for (int k = 0; k < 8; ++k) dv_(k,i,-2)=dv_(k,i,-1);
+        }
+    } else if (s.edge == config::Edge::YMax) {
+        for (int i = lo; i <= hi; ++i) {
+            sym_fill(i,ny,i,ny-1);
+            for (int k = 0; k < 8; ++k) dv_(k,i,ny+1)=dv_(k,i,ny);
+        }
+    } else if (s.edge == config::Edge::XMin) {
+        for (int j = lo; j <= hi; ++j) {
+            sym_fill(-1,j,0,j);
+            for (int k = 0; k < 8; ++k) dv_(k,-2,j)=dv_(k,-1,j);
+        }
+    } else {  // XMax
+        for (int j = lo; j <= hi; ++j) {
+            sym_fill(nx,j,nx-1,j);
+            for (int k = 0; k < 8; ++k) dv_(k,nx+1,j)=dv_(k,nx,j);
+        }
+    }
+}
+
+void EulerSolver::clamp_segment_bounds(BoundarySegmentRuntime& s) {
+    const int ng = 2;  // cv_.ng()
+    const int max_i = mesh_.nx() + ng - 1;
+    const int max_j = mesh_.ny() + ng - 1;
+    int lo = std::max(s.start - 2, -ng);
+    int hi = std::min(s.end - 2,
+                      (s.edge == config::Edge::XMin || s.edge == config::Edge::XMax)
+                          ? mesh_.ny() + ng - 1 : max_i);
+    s.start = lo + 2;
+    s.end = hi + 2;
 }
 
 void EulerSolver::apply_segment(const BoundarySegmentRuntime& s) {
     switch (s.type) {
-        case config::BcType::Transmissive: bc_transmissive(s); break;
-        case config::BcType::PrescribedInflow: bc_prescribed_inflow(s); break;
-        case config::BcType::SlipWall: bc_slip_wall(s); break;
-        case config::BcType::NoSlipAdiabaticWall: bc_no_slip_wall(s); break;
-        case config::BcType::NoSlipIsothermalWall: bc_no_slip_wall(s); break;
-        case config::BcType::Farfield: bc_farfield(s); break;
-        case config::BcType::Cut: bc_transmissive(s); break;
-        case config::BcType::Symmetry: bc_slip_wall(s); break;
+        case config::BcType::Transmissive: bc_transmissive(clipped); break;
+        case config::BcType::PrescribedInflow: bc_prescribed_inflow(clipped); break;
+        case config::BcType::SlipWall: bc_slip_wall(clipped); break;
+        case config::BcType::NoSlipAdiabaticWall: bc_no_slip_wall(clipped); break;
+        case config::BcType::NoSlipIsothermalWall: bc_no_slip_wall(clipped); break;
+        case config::BcType::Farfield: bc_farfield(clipped); break;
+        case config::BcType::Cut: bc_transmissive(clipped); break;
+        case config::BcType::Symmetry: bc_symmetry(clipped); break;
     }
 }
 

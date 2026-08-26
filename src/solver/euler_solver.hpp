@@ -110,6 +110,7 @@ private:
     void compute_viscous_chain();
     /// Dispatches to the configured inviscid scheme's dissipation kernel.
     void dispatch_inviscid_scheme();
+    void clip_segment_bounds(BoundarySegmentRuntime& s);
 
     // Boundary kernels (legacy Bc_Transmitive / Bc_Prescribed_Inflow / BC_wall)
     void bc_transmissive(const BoundarySegmentRuntime& s);
@@ -118,6 +119,8 @@ private:
     void bc_no_slip_wall(const BoundarySegmentRuntime& s,
                          std::optional<double> wall_temp = std::nullopt);
     void bc_farfield(const BoundarySegmentRuntime& s);
+    void bc_symmetry(const BoundarySegmentRuntime& s);
+    void clamp_segment_bounds(BoundarySegmentRuntime& s);
     void transport_at(int i, int j);
     [[nodiscard]] int decomp_offset() const;
     [[nodiscard]] bool owns_rows(int glo, int ghi) const;
