@@ -39,8 +39,11 @@ void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& m
                                 const FaceGradTables* tables) {
     const int nx = mesh.nx(), ny = mesh.ny();
     const Field<Vec2>& si = metrics.si;
-    const Field<Vec2>& sj = tables && tables->sj_corrected ? *tables->sj_corrected
-                                                           : metrics.sj;
+    // Base metrics stay byte-identical to serial semantics everywhere;
+    // corrected-ghost sj is consulted ONLY by the interface repair terms.
+    const Field<Vec2>& sj = metrics.sj;
+    const Field<Vec2>& sjx = tables && tables->sj_corrected ? *tables->sj_corrected
+                                                            : metrics.sj;
     const Field<double>& area = metrics.area;
 
     // Zero gradient fields before accumulation (legacy Initialize_Gradients).
@@ -158,8 +161,8 @@ void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& m
             // Serial interior term: +(aux bottom flux of row jf-1), where the
             // aux face vector averages sj at rows -1 and 0 (true metrics in
             // ghost slot -1 via exchange_face_metric_rows).
-            const double sx = 0.5 * (sj(i, -1).x + sj(i, 0).x);
-            const double sy = 0.5 * (sj(i, -1).y + sj(i, 0).y);
+            const double sx = 0.5 * (sjx(i, -1).x + sjx(i, 0).x);
+            const double sy = 0.5 * (sjx(i, -1).y + sjx(i, 0).y);
             scatter_i({sx, sy}, dv(U, i, -1), dv(V, i, -1), dv(T, i, -1),
                       gradfj, i, 0, +1.0);
         }
@@ -187,8 +190,8 @@ void green_gauss_face_gradients(const StructuredMesh& mesh, const MeshMetrics& m
             // Serial interior term: -(aux bottom flux of row jf = local ny),
             // aux face vector averaging sj rows ny and ny+1 (true neighbor
             // metric in ghost slot).
-            const double sx = 0.5 * (sj(i, ny).x + sj(i, ny + 1).x);
-            const double sy = 0.5 * (sj(i, ny).y + sj(i, ny + 1).y);
+            const double sx = 0.5 * (sjx(i, ny).x + sjx(i, ny + 1).x);
+            const double sy = 0.5 * (sjx(i, ny).y + sjx(i, ny + 1).y);
             scatter_i({sx, sy}, dv(U, i, ny), dv(V, i, ny), dv(T, i, ny),
                       gradfj, i, ny, -1.0);
         }

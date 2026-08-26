@@ -222,18 +222,32 @@ void EulerSolver::init_freestream() {
         return;
     }
 
-    // Nondimensional (legacy InitFlowNonDimensional).
+    // Nondimensional (legacy InitFlowNonDimensional).  Legacy splits the
+    // scaling by equation type -- Euler: T*=1/gamma, q*=M, R*=1;
+    // Navier-Stokes: T*=q*=1, R*=1/(gamma*M^2).  Prescribed-inflow states
+    // (e.g. SWBLI post-shock data) are expressed in these internal units, so
+    // the split is mandatory for unit consistency.
     rhoinf_ = 1.0;
-    tinf_ = 1.0 / kGamma;
-    qinf_ = cfg_.physics.mach_inf;
-    rgas_ = 1.0;
     cp_ = 1.0 / ((kGamma - 1.0) * cfg_.physics.mach_inf * cfg_.physics.mach_inf);
-    pinf_ = rhoinf_ * rgas_ * tinf_;
     alpha_rad_ = cfg_.physics.alpha_deg / (180.0 / (4.0 * std::atan(1.0)));
+    const double mach2 = cfg_.physics.mach_inf * cfg_.physics.mach_inf;
+    if (cfg_.equations == config::Equations::NavierStokes) {
+        tinf_ = 1.0;
+        qinf_ = 1.0;
+        rgas_ = 1.0 / (kGamma * mach2);
+        ref_visc_ = cfg_.physics.reference_length > 0
+                        ? cfg_.physics.reference_length / cfg_.physics.re_inf
+                        : 1.0 / cfg_.physics.re_inf;
+    } else {
+        tinf_ = 1.0 / kGamma;
+        qinf_ = cfg_.physics.mach_inf;
+        rgas_ = 1.0;
+        ref_visc_ = 0.0;
+    }
+    pinf_ = rhoinf_ * rgas_ * tinf_;
     uinf_ = qinf_ * std::cos(alpha_rad_);
     vinf_ = qinf_ * std::sin(alpha_rad_);
-    ref_visc_ = 0.0;
-    eos_.gas_constant = rgas_;  // ND runs run with Rgas = 1 (legacy global)
+    eos_.gas_constant = rgas_;
 
     const int ng = cv_.ng();
     for (int i = -ng; i < cv_.ni() + ng; ++i)
