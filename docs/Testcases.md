@@ -39,7 +39,34 @@ mpirun -np 4 build-mpi/ns_solver configs/RampEuler.toml input/RampGrid24080.dat 
 | `HypersonicFlowEuler.toml` | `HalfCylinderGrid80160.dat` (80×160) | Euler, ND | NKFDS-MOVERS | prescribed-inflow, transmissive×2, slip-wall |
 | `FfsEuler.toml` | `FFSGrid24080.dat` (240×80) | Euler, ND | scheme-specific | per topology |
 | `ObliqueShockRefEuler.toml` | `RampGrid24080.dat` | Euler, ND | KFDS-1O | per topology |
-| `SWBLI_NS.toml` | `SWBLIGrid10565_2.dat` (105×65) | NS, ND | NKFDS-MOVERS-2O | per topology |
+| `SWBLI_NS.toml` | `SWBLIGrid141121.dat` (141×121) | NS, ND, M=2.15, Re=1e5 | NKFDS-MOVERS-2O | prescribed-inflow ×3 (post-shock state on imin-top + jmax), transmissive, symmetry strip, no-slip plate |
+
+### SWBLI (shock-wave / boundary-layer interaction)
+
+Mach 2.15, Re=1e5 (Lref=0.8 m) flat plate with an impinging oblique shock
+(β ≈ 30.8°) prescribed via post-shock inflow states on the upper part of
+`imin` and all of `jmax`; no-slip adiabatic plate downstream of a short
+leading-edge symmetry strip.
+
+```bash
+# serial (~30 min for the legacy-length 250k iterations)
+./build/release/ns_solver configs/SWBLI_NS.toml input/SWBLIGrid141121.dat output/swbli 250000
+
+# MPI (np=2/3/4 verified: bitwise / round-off parity vs serial)
+mpirun -np 4 build-mpi/ns_solver configs/SWBLI_NS.toml input/SWBLIGrid141121.dat output/swbli 250000
+
+python3 scripts/plot_contours.py output/swbli/SWBLI_roeZB_IsoCont141_121Iter250000.dat -o output/swbli/contours.png
+python3 scripts/plot_residual.py output/swbli/Residue_SWBLI_roeZB141_121.dat --start 100
+```
+
+Expected physics at convergence (residual ~1e-4; reference plots in
+`output/swbli/`):
+- incident shock entering at (x=-0.2, y≈0.74), impinging near x ≈ 1.0;
+  reflected shock and trailing pressure waves visible in density gradients
+- laminar separation bubble x ∈ [0.78, 1.19], height < 0.01
+- two-plateau wall pressure: separated plateau p ≈ 0.185, reattached
+  plateau p ≈ 0.236 (ND units, p_inf = 0.1545)
+- residual drops fast then tails slowly (weakly unsteady interaction)
 
 ## Output Files
 
