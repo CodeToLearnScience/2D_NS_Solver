@@ -61,26 +61,36 @@ After running, the output directory contains:
    - Use **Calculator** filter for Mach number: `sqrt(vx^2+vy^2)/a`
    - Use **Contour** filter for iso-contour lines
 
-Alternative — plot the `.dat` file with Python:
+### Plotting Scripts
 
-```python
-import numpy as np
-import matplotlib.pyplot as plt
+Two standalone Python scripts are provided in `scripts/`:
 
-data = np.loadtxt("Ramp_KFDS_maxU_24080_2nd_IsoCont240_80Iter200.dat", skiprows=3)
-x, y = data[:,0], data[:,1]
-rho, u, v, p, T, Mach = data[:,2], data[:,3], data[:,4], data[:,5], data[:,6], data[:,7]
+**Contour plots** — reads a solution `.dat`, produces filled contours:
+```bash
+# Default 2×2 panel: density, pressure, Mach, |velocity|
+python3 scripts/plot_contours.py output/Ramp_IsoCont240_80Iter200.dat
 
-nx, ny = 241, 81
-xi = x.reshape(ny, nx); yi = y.reshape(ny, nx)
+# Single variable fullsize (choices: rho, p, mach, u, v, t)
+python3 scripts/plot_contours.py output/Ramp_IsoCont.dat --var mach
 
-plt.figure(figsize=(12,4))
-plt.subplot(131); plt.contourf(xi, yi, rho.reshape(ny,nx), 30, cmap='jet'); plt.colorbar(); plt.title('Density')
-plt.subplot(132); plt.contourf(xi, yi, p.reshape(ny,nx), 30, cmap='jet'); plt.colorbar(); plt.title('Pressure')
-plt.subplot(133); plt.contourf(xi, yi, Mach.reshape(ny,nx), 30, cmap='jet'); plt.colorbar(); plt.title('Mach')
-plt.tight_layout(); plt.savefig("contours.png", dpi=150)
-plt.show()
+# Custom output path
+python3 scripts/plot_contours.py output/sol.dat -o figures/ramp.png
 ```
+
+**Residual convergence** — semilog L2 norm + Cl/Cd forces:
+```bash
+# Single run
+python3 scripts/plot_residual.py output/Residue_Ramp240_80.dat
+
+# Overlay multiple runs for comparison
+python3 scripts/plot_residual.py output/run1.dat output/run2.dat --labels "serial,MPI"
+
+# Skip initial transient iterations
+python3 scripts/plot_residual.py output/res.dat --start 50
+```
+
+Both scripts save PNG files alongside the input by default and use only
+numpy + matplotlib.
 
 ## Plotting Residual Convergence
 
