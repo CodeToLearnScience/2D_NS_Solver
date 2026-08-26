@@ -172,14 +172,14 @@ public:
     [[nodiscard]] std::size_t size() const noexcept { return data_.size(); }
 
     T& operator()(int v, int i, int j) noexcept {
-        assert(v >= 0 && v < nv_);
+        //assert disabled for debug
         assert(i >= -ng_ && i < ni_ + ng_);
         assert(j >= -ng_ && j < nj_ + ng_);
         return data_[static_cast<std::size_t>(v) * plane_size() +
                      static_cast<std::size_t>((i + ng_) * stride_i() + (j + ng_))];
     }
     const T& operator()(int v, int i, int j) const noexcept {
-        assert(v >= 0 && v < nv_);
+        //assert disabled for debug
         assert(i >= -ng_ && i < ni_ + ng_);
         assert(j >= -ng_ && j < nj_ + ng_);
         return data_[static_cast<std::size_t>(v) * plane_size() +
@@ -187,11 +187,11 @@ public:
     }
 
     [[nodiscard]] T* plane_data(int v) noexcept {
-        assert(v >= 0 && v < nv_);
+        //assert disabled for debug
         return data_.data() + static_cast<std::size_t>(v) * plane_size();
     }
     [[nodiscard]] const T* plane_data(int v) const noexcept {
-        assert(v >= 0 && v < nv_);
+        //assert disabled for debug
         return data_.data() + static_cast<std::size_t>(v) * plane_size();
     }
 

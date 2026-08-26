@@ -199,6 +199,15 @@ Run under `mpirun`: `ctest --test-dir build-mpi -R mpi_halo`
 | mpi_halo_np2 | 2 | Halo exchange: ghost cells match neighbour real rows exactly |
 | mpi_halo_np3 | 3 | Same with interior rank (two interfaces) |
 
+## Known Limitations
+
+| Issue | Impact | Status |
+|---|---|---|
+| NS viscous chain segfaults on non-Cartesian grids after ~5 iterations | Blasius-NS and SWBLI-NS cannot run to completion; Euler cases unaffected | Under investigation — viscous flux accumulation corrupts heap near wall boundaries; isolated to non-Cartesian grids |
+| SSPRK steppers implemented but untested against legacy trajectories | SSPRK2/3 results may differ from FE baseline | Correctness verified structurally (Shu-Osher form) |
+| Far-field BC uses simplified freestream prescription instead of characteristic Riemann solving | Supersonic outflow adequate; subsonic farfield may reflect spurious waves | Upgrade planned |
+| Surface pressure/velocity writer not ported | Cl/Cd/Cm in residue file work; surface distribution output missing | Low priority |
+
 ## Benchmarking
 
 ```bash

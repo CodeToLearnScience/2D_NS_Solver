@@ -85,6 +85,8 @@ EulerSolver::EulerSolver(const StructuredMesh& mesh, const config::Config& cfg)
       duj_(4, mesh.nx(), mesh.ny(), 2),
       gradfi_(6, mesh.nx() + 1, mesh.ny() + 1, 2),
       gradfj_(6, mesh.nx() + 1, mesh.ny() + 1, 2),
+      cui_(4, mesh.nx(), mesh.ny(), 2),
+      cuj_(4, mesh.nx(), mesh.ny(), 2),
       tstep_(mesh.nx(), mesh.ny(), 2),
       ifaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
       jfaces_(kNConv, mesh.nx() + 1, mesh.ny() + 1, 2),
